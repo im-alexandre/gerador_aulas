@@ -2,3 +2,4 @@
 app/output/curso_exemplo_testes_software/saida.txt
 curso_exemplo_testes_software
 app/config/*
+!app/config/.gitkeep

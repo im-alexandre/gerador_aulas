@@ -1,0 +1,12 @@
+{
+  "headers": {
+    "X-API-KEY": "",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Cookie": ""
+  },
+  "body": {
+    "gammaId": "",
+    "folderIds": [""]
+  }
+}

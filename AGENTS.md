@@ -8,7 +8,7 @@
 - Saídas: `app/output/<curso>/saida.txt` (respostas em modo append).
 
 ## Comandos de Build, Testes e Desenvolvimento
-- Pipeline completo (GPT → Gamma → polling), na raiz:
+- Pipeline completo (GPT → Gamma → polling), na raiz — `--folder-id` obrigatório:
   - `python .\pipeline.py --curso-dir .\curso_exemplo_testes_software --folder-id <id> --poll-interval 15 --max-wait-minutes 0`
   - Gera cards, envia ao Gamma e consulta até `completed`.
 - Apenas cards (na raiz):

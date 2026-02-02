@@ -79,6 +79,8 @@ def run_pipeline(args):
     app_dir = Path(args.app_dir).resolve()
     course_dir = Path(args.course_dir).resolve()
     export_dir = resolve_path(course_dir, args.export_dir)
+    export_dir.mkdir(parents=True, exist_ok=True)
+    (course_dir / "cards_exemplo").mkdir(parents=True, exist_ok=True)
     prompt_md_path = resolve_path(app_dir, args.prompt_md)
     generated_cards = generate_cards_for_root(
         root=course_dir,

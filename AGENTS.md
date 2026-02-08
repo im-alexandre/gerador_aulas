@@ -1,49 +1,32 @@
-# Diretrizes do Repositório
+# Repository Guidelines
 
-## Estrutura do Projeto & Organização dos Módulos
-- Raiz: `pipeline.py` (execução fim a fim).
-- Lógica da aplicação: `app/pipeline_core.py` (pipeline), `app/browser.py` (browser), `app/` (módulos), `app/scripts/` (scripts CLI).
-- Configs e prompts: `app/config/`, `app/prompts/`.
-- Dados do curso: `curso_*/` (DOCX, `cards/`, `cards_exemplo/`).
-- Saídas: `app/output/<curso>/saida.txt` (respostas em modo append).
+## Project Structure & Module Organization
+- Root entry point: `app.py` runs the end-to-end flow (DOCX → JSON → PPTX).
+- Core logic: `app/docx_tagger.py`, `app/gpt_planner.py`, `app/pptx_renderer.py`, and modules in `app/`.
+- Configs and prompts: `app/config/` and `app/prompts/`.
+- Course data: `curso_*/` directories with DOCX files, `assets/`, and `roteiros/`.
+- Outputs: `slides_plan.json` and `*.pptx` inside each `modX_ncY` / `modX_npY`.
 
-## Comandos de Build, Testes e Desenvolvimento
-- Pipeline completo (GPT → Gamma → polling), na raiz — `--folder-id` obrigatório:
-  - `python .\pipeline.py --curso-dir .\curso_exemplo_testes_software --folder-id <id> --poll-interval 15 --max-wait-minutes 0`
-  - Gera cards, envia ao Gamma e consulta até `completed`.
-- Apenas cards (na raiz):
-  - `python .\app\scripts\gera_cards.py --root .\curso_exemplo_testes_software --export-dir .\curso_exemplo_testes_software\cards`
-  - Lê DOCX nas subpastas, grava `cards.md` e exporta `*_card.md`.
-- Apenas Gamma (na raiz):
-  - `python .\app\scripts\gamma_create_from_template.py`
-  - Usa `COURSE_DIR` para localizar `cards_exemplo/`.
-- Consultar status de geração:
-  - `python .\app\scripts\consulta_geracoes.py <generation_id>`
-  - Imprime a resposta bruta e o status extraído.
+## Build, Test, and Development Commands
+- Full pipeline:
+  - `python .\app.py --curso-dir .\curso_exemplo_testes_software --force`
+  - Extrai roteiros do zip, gera `*_tagged.docx`, gera JSON e renderiza PPTX.
 
-## Estilo de Código & Convenções de Nome
-- Python: 4 espaços de indentação, snake_case para variáveis e funções.
-- Mantenha prompts e instruções em `app/prompts/`, chaves/configs em `app/config/`.
-- Prefira caminhos explícitos nos configs (ex.: `app/config/config.json`).
+## Coding Style & Naming Conventions
+- Python: 4-space indentation and `snake_case` for variables and functions.
+- Keep prompts/instructions in `app/prompts/` and configs in `app/config/`.
+- Prefer constantes em `app/config/paths.py` e `app/config/pipeline.py`.
 
-## Diretrizes de Testes
-- Não há suíte de testes. Se adicionar, documente o framework e o comando aqui.
+## Testing Guidelines
+- No automated test suite is configured. If you add tests, document the framework and command here.
 
-## Diretrizes de Commit & Pull Request
-- Não há histórico Git disponível; convenções são desconhecidas.
-- Use mensagens claras e orientadas a ação (ex.: “Adicionar validação do payload Gamma”).
-- PRs devem incluir:
-  - Resumo das mudanças e scripts afetados.
-  - Atualização de configs/prompts quando houver mudança de contrato.
-  - Exemplo de saída ou logs ao alterar chamadas de API.
+## Commit & Pull Request Guidelines
+- Git history is not available; follow clear, action-oriented commit messages (e.g., “Adicionar validação do JSON do plano”).
+- PRs should include: a change summary, affected scripts, config/prompt updates when contracts change, and example outputs/logs for API changes.
 
-## Segurança & Configuração
-- `OPENAI_API_KEY` deve estar no ambiente para chamadas GPT.
-- A chave do Gamma é lida em `app/config/chave_api_gamma.txt`; não commitar segredos reais.
-- Revise `app/config/api_config.json` e `app/config/config.json` antes de rodar.
+## Security & Configuration Tips
+- Set `OPENAI_API_KEY` in the environment for GPT calls.
+- Review `app/config/paths.py` e `app/config/pipeline.py` before running.
 
-## Como adicionar novos cursos
-- Crie um diretório na raiz com o padrão `curso_nome_do_curso/`.
-- Adicione `cards/` e `cards_exemplo/` dentro do curso.
-- Copie os DOCX do curso para `curso_*/`.
-- Rode `python .\pipeline.py --curso-dir .\curso_nome` (ou defina `COURSE_DIR`).
+## Agent-Specific Instructions
+- Keep edits concise and repository-specific; prefer updating prompts/configs over hardcoding.

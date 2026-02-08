@@ -1,1 +1,1 @@
-"""Shared modules for the GPT→Gamma pipeline."""
+"""Shared modules for the docx → JSON → PPTX pipeline."""

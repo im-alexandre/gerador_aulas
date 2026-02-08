@@ -1,0 +1,14 @@
+{
+  "models": {
+    "gpt-5.2": {
+      "prompt_per_1k": 0.00175,
+      "prompt_cached_per_1k": 0.000175,
+      "completion_per_1k": 0.014
+    }
+  },
+  "images": {
+    "gpt-image-1-mini": {
+      "1024x1536": 0.006
+    }
+  }
+}

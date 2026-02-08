@@ -98,8 +98,8 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
 
 ## 4. REGRAS DE PLANEJAMENTO
 
-- Gere entre 6 slides (code + standard) + 1 (title).
-- Só ultrapasse esse limite se existirem mais subseções no conteúdo
+- Gere entre 6 e 8 slides (code + standard) + 1 (title).
+- Se existirem mais conceitos do que esse limite, pode chegar a 10.
 - Mantenha a ordem do conteudo.
 - Cada slide trata de um unico foco conceitual.
 - Nao invente conteudo fora do material.
@@ -108,7 +108,7 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
 ## 5. REGRAS EDITORIAIS DOS SLIDES
 
 - Slides "standard" devem ter lead
-- Nesse caso, gere 3 bullets.
+- Nesse caso, gere 3 ou 4 bullets.
 - Bullets devem ser frases técnicas resumidas, sem verbo, tratando de UMA única ideia.
 - Sempre que possível, utilize caracteres, símbolos na construção:
   “causa -> consequência".
@@ -260,3 +260,4 @@ Imagem GERADA
 - Campos obrigatorios presentes.
 - Nenhum texto fora do JSON.
 - Se o slides_plan.json possuir menos de 4 slides, refaça
+- Conteúdo completo é mais importante que limite de slides

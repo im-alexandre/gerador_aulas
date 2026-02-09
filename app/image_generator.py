@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -14,6 +15,11 @@ from app.config.pipeline import (
     OPENAI_IMAGE_SIZE,
     OPENAI_IMAGE_QUALITY,
 )
+from app.debug_payload import dump_payload
+from app.logging_utils import log_step
+
+
+log = logging.getLogger(__name__)
 
 
 def _img_prompt_from_slide(slide: dict[str, Any]) -> str:
@@ -72,10 +78,25 @@ def generate_image_png(
     if quality:
         payload["quality"] = quality
 
+    dump_path = dump_payload(payload)
+    log_step(
+        log,
+        out_path.parent.name,
+        "generate_image_png",
+        f"request_dump={dump_path}",
+        level=logging.DEBUG,
+    )
     img = client.images.generate(**payload)
 
     image_bytes = base64.b64decode(img.data[0].b64_json)
     out_path.write_bytes(image_bytes)
+
+
+def _preview_text(text: str, limit: int = 200) -> str:
+    cleaned = " ".join((text or "").split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "..."
 
 
 def materialize_generated_images_for_plan(
@@ -101,7 +122,7 @@ def materialize_generated_images_for_plan(
     if not isinstance(slides, list):
         return 0, {"model": model, "size": size, "count": 0, "cost_usd": 0}
 
-    tasks: list[tuple[dict[str, Any], str, Path, str]] = []
+    tasks: list[tuple[dict[str, Any], str, Path, str, str]] = []
     for slide in slides:
         if not isinstance(slide, dict):
             continue
@@ -131,7 +152,7 @@ def materialize_generated_images_for_plan(
         out_path = course_dir / rel
 
         prompt = _img_prompt_from_slide(slide)
-        tasks.append((slide, rel, out_path, prompt))
+        tasks.append((slide, rel, out_path, prompt, slide_id))
 
     if not tasks:
         return 0, {"model": model, "size": size, "count": 0, "cost_usd": 0}
@@ -141,7 +162,7 @@ def materialize_generated_images_for_plan(
 
     if not generate_images:
         reused = 0
-        for slide, rel, out_path, _prompt in tasks:
+        for slide, rel, out_path, _prompt, _slide_id in tasks:
             if out_path.exists():
                 image = slide.get("image") or {}
                 if isinstance(image, dict):
@@ -150,7 +171,22 @@ def materialize_generated_images_for_plan(
                 reused += 1
         return reused, {"model": model, "size": size, "count": 0, "cost_usd": 0}
 
-    def _generate_one(prompt: str, out_path: Path) -> None:
+    def _generate_one(prompt: str, out_path: Path, slide_id: str) -> None:
+        log_step(
+            log,
+            nucleus_name,
+            "generate_image_png",
+            (
+                "request: "
+                f"model={model} "
+                f"size={size} "
+                f"quality={quality or 'default'} "
+                f"slide_id={slide_id} "
+                f"prompt_len={len(prompt)} "
+                f'prompt_preview="{_preview_text(prompt)}"'
+            ),
+            level=logging.DEBUG,
+        )
         client = OpenAI()
         generate_image_png(
             client=client,
@@ -165,8 +201,8 @@ def materialize_generated_images_for_plan(
     workers = max_workers if max_workers is not None else IMAGE_WORKERS
     with ThreadPoolExecutor(max_workers=workers) as executor:
         future_map = {
-            executor.submit(_generate_one, prompt, out_path): (slide, rel)
-            for slide, rel, out_path, prompt in tasks
+            executor.submit(_generate_one, prompt, out_path, slide_id): (slide, rel)
+            for slide, rel, out_path, prompt, slide_id in tasks
         }
         for future in as_completed(future_map):
             slide, rel = future_map[future]

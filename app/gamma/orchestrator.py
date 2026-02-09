@@ -9,6 +9,7 @@ from app.gamma.cards import build_cards_markdown
 from app.gamma.client import generate_pptx_from_cards
 from app.gamma.config import load_gamma_config
 from app.gamma.extractor import extract_slide_images
+from app.logging_utils import log_step
 
 
 log = logging.getLogger(__name__)
@@ -107,7 +108,13 @@ def materialize_generated_images_for_plan(
 
     cfg = load_gamma_config()
     if not cfg:
-        log.info("Gamma desativado: gamma_config.json nao encontrado.")
+        log_step(
+            log,
+            nucleus_name,
+            "materialize_generated_images_for_plan",
+            "Gamma desativado: gamma_config.json nao encontrado",
+            level=logging.DEBUG,
+        )
         return 0, 0
 
     card_slides = _select_card_slides(plan)
@@ -125,6 +132,7 @@ def materialize_generated_images_for_plan(
         export_path,
         poll_interval=GAMMA_POLL_INTERVAL_SECONDS,
         timeout_seconds=GAMMA_POLL_TIMEOUT_SECONDS,
+        context=nucleus_name,
     )
 
     extracted = extract_slide_images(

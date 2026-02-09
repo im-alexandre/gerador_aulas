@@ -7,14 +7,15 @@ conforme o contrato abaixo. Nao inclua nenhum texto fora do JSON.
 
 ## 1. ENTRADAS
 
-Você receberá exatamente 2 arquivos DOCX anexados:
+Você receberá 2 arquivos DOCX anexados OU o texto extraido no input:
 
 1. CONTEUDO DO VIDEO (com tags de imagem no corpo, ex.: [[IMG:assets/img_0001.png]])
 2. ROT (roteiro: contem sinopse e nome do video)
 
 ### 0. LEITURA OBRIGATORIA
 
-Voce DEVE abrir e ler os dois DOCX usando python tool.
+Se os DOCX estiverem anexados, voce DEVE abrir e ler os dois arquivos usando python tool.
+Se o texto ja estiver no input, use-o diretamente e NAO chame ferramentas.
 
 As imagens foram extraidas e substituidas por tags no conteudo.
 Quando uma tag aparecer, considere a imagem associada ao trecho.
@@ -37,59 +38,27 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
 
 ```json
 {
-  "module": "mod1",
-  "nucleus": "nc3",
+  "module": "modX",
+  "nucleus": "ncY",
   "slides": [
     {
       "slide_id": "s00",
       "kind": "title",
-      "title": "Resources, Variables e Outputs no Terraform"
+      "title": "TÍTULO DO NÚCLEO CONCEITUAL"
     },
     {
       "slide_id": "s01",
       "kind": "standard",
-      "title": "Infraestrutura como Código no fluxo DevOps",
-      "lead": "A Infraestrutura como Código integra a gestão de ambientes ao fluxo DevOps, permitindo automação, padronização e maior previsibilidade nas entregas.",
+      "title": "Título do slide",
+      "lead": "Lead curto e conceitual.",
       "bullets": [
-        "Infraestrutura versionada reduz divergências entre ambientes",
-        "Automação do provisionamento elimina etapas manuais, tornando o fluxo mais previsível",
-        "Padronização de ambientes sustenta testes confiáveis ao longo do pipeline",
-        "Integração com controle de versão melhora rastreabilidade das mudanças"
-      ],
-      "image": {
-        "source": "docx",
-        "path": "assets/img_0001.png"
-      }
-    },
-    {
-      "slide_id": "s02",
-      "kind": "code",
-      "title": "Terraform — definição declarativa de recursos",
-      "code": {
-        "language": "hcl",
-        "text": "resource \"aws_instance\" \"exemplo\" {\n  ami           = \"ami-123456\"\n  instance_type = \"t3.micro\"\n}"
-      },
-      "bullets": [
-        "Recurso declara o estado desejado de uma instância EC2",
-        "Definição declarativa descreve o que deve existir, não como criar",
-        "Alterações no código permitem controle e rastreabilidade das mudanças",
-        "Aplicação automatizada reduz dependência de intervenção manual"
-      ]
-    },
-    {
-      "slide_id": "s03",
-      "kind": "standard",
-      "title": "Idempotência e previsibilidade no provisionamento",
-      "lead": "A idempotência garante que múltiplas execuções produzam o mesmo estado final, reduzindo riscos operacionais e surpresas em produção.",
-      "bullets": [
-        "Execuções repetidas convergem para o mesmo estado desejado, sem efeitos colaterais",
-        "Falhas parciais podem ser reexecutadas com segurança",
-        "Ambientes ficam reprodutíveis entre times e pipelines",
-        "Auditoria e rollback se tornam mais simples e confiáveis"
+        "Conceito A -> efeito direto",
+        "Aspecto estrutural do tema",
+        "Relação entre elementos"
       ],
       "image": {
         "source": "generated",
-        "intent": "Diagrama simples mostrando múltiplas execuções convergindo para o mesmo estado final"
+        "intent": "descrição do conceito como encadeamento de ideias"
       }
     }
   ]
@@ -98,22 +67,48 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
 
 ## 4. REGRAS DE PLANEJAMENTO
 
-- Gere entre 6 e 8 slides (code + standard) + 1 (title).
-- Se existirem mais conceitos do que esse limite, pode chegar a 10.
-- Mantenha a ordem do conteudo.
-- Cada slide trata de um unico foco conceitual.
-- Nao invente conteudo fora do material.
-- Use o titulo do nucleo conceitual para criar o título do slide
+### REGRA DE DENSIDADE (OBRIGATÓRIA)
+
+- Crie de 6 a 10 slides
+- Utilize todos os conceitos e definições explicados ao longo do material
+
+### REGRA DE PRESERVAÇÃO (OBRIGATÓRIA)
+
+- O modelo NÃO deve resumir, condensar ou omitir:
+  - blocos de código
+  - tipos de dados
+  - listas técnicas
+  - enumerações
+  - estruturas
+- Sempre que um desses itens existir no DOCX, ele DEVE aparecer em pelo menos um slide.
+- Se necessário, o conteúdo DEVE ser dividido em múltiplos slides em vez de resumido.
+
+#### REGRA ESPECIAL — CÓDIGO
+
+- Trechos de código presentes no DOCX NÃO devem ser:
+  - resumidos
+  - reescritos conceitualmente
+  - substituídos por pseudocódigo
+- Cada bloco de código deve gerar ao menos UM slide do tipo "code".
+- Se um bloco exceder o limite visual, divida em múltiplos slides de código.
+- Slides do tipo "code" NÃO contam para o limite máximo de slides.
+- O limite de slides aplica-se apenas a slides conceituais ("standard").
+
+#### TIPOS, CAMPOS E ESTRUTURAS
+
+- Cada tipo ou estrutura relevante deve aparecer explicitamente.
+- Exemplos:
+  - tipos de conceitos
+  - atributos de determinada entidade
+  - campos obrigatórios
 
 ## 5. REGRAS EDITORIAIS DOS SLIDES
 
 - Slides "standard" devem ter lead
 - Nesse caso, gere 3 ou 4 bullets.
-- Bullets devem ser frases técnicas resumidas, sem verbo, tratando de UMA única ideia.
-- Sempre que possível, utilize caracteres, símbolos na construção:
-  “causa -> consequência".
-  Ex.: "Maior automação -> menos erros humanos".
+- Bullets devem ser frases técnicas resumidas, tratando de UMA única ideia.
 - Um bullet pode conter causa e consequência, mas não deve concluir o assunto nem funcionar como observação final.
+- Bullets devem ser resumidos e explicativos
 - Não gere observações finais, notas ou texto corrido fora do campo "lead".
 
 ## REGRA ESPECIAL — mod0_vidint (VÍDEO INTRODUTÓRIO)
@@ -123,9 +118,9 @@ Essas regras SOBRESCREVEM regras gerais em caso de conflito.
 
 ### Escopo de conteúdo
 
-- O mod0_vidint é um vídeo introdutório curto, baseado no CONJUNTO do material.
+- O mod0_vidint é um vídeo introdutório curto, baseado no material inteiro
 - NÃO deve reutilizar imagens associadas a outros núcleos.
-- NÃO deve fazer referência explícita a conceitos específicos de núcleos posteriores.
+- NÃO deve fazer referência explícita a núcleos posteriores ou ao módulo em si
 - O conteúdo deve ser conceitual e panorâmico, não técnico-detalhado.
 
 ### Regras de Imagem — mod0_vidint
@@ -147,29 +142,22 @@ Essas regras SOBRESCREVEM regras gerais em caso de conflito.
 - Não antecipar explicações que serão aprofundadas em outros núcleos.
 - O objetivo é orientar e contextualizar, não ensinar em detalhe.
 
-- Se nucleus == "mod0_vidint":
-  - Nenhum slide pode conter image.source="docx".
-  - Todas as imagens devem ser geradas.
-  - Conteúdo excessivamente detalhado deve ser evitado.
+- Todas as imagens devem ser geradas.
+- Conteúdo excessivamente detalhado deve ser evitado.
 
 ### Densidade e legibilidade (REGRA GLOBAL)
 
-- Bullets devem ter no máximo 60 caracteres.
 - Preferir sintagmas nominais (frases sem verbo).
-- Evitar explicações, exemplos e justificativas.
-- Texto do slide NÃO deve ser autoexplicativo.
+- Evitar explicações, exemplos e justificativas longas.
+- Texto do slide deve ser autoexplicativo, simples e resumido
 
-- O texto do slide deve exigir explicação oral para ser plenamente compreendido.
-- Slides devem funcionar como apoio visual, não como material de leitura.
 - Evitar artigos, conectivos e orações subordinadas.
 - Preferir palavras-chave ou expressões nominais curtas.
 
 - Slides NÃO devem conter:
   - blocos extensos de texto
   - frases longas com múltiplas orações
-  - explicações completas ou autoexplicativas
   - texto que possa ser lido como um parágrafo contínuo
-- O slide deve funcionar como apoio visual à narração, não como material de leitura.
 - Se o conteúdo exigir explicação longa, ele DEVE ser dividido em múltiplos slides.
 
 - Slides com excesso de texto, independentemente do kind, devem ser considerados inválidos.
@@ -180,9 +168,7 @@ Essas regras SOBRESCREVEM regras gerais em caso de conflito.
 - O lead deve ter no máximo 120 caracteres.
 - O lead serve como contexto mínimo para o slide, não como explicação completa.
 - Deve ser uma única frase curta, clara e evocativa.
-- Se ultrapassar 120 caracteres, o texto DEVE ser reescrito até caber.
 - O lead pode ser ligeiramente mais explicativo que os bullets, mas ainda deve funcionar como gatilho de memória.
-- Se o conteúdo puder ser lido como texto corrido sem a fala do professor, o lead está longo demais.
 - Se não for possível expressar a ideia em até 120 caracteres, simplifique a ideia em vez de detalhar.
 
 ### Exemplo de lead correto
@@ -200,7 +186,7 @@ Lead rejeitado:
 
 #### Regras para slides "standard":
 
-- Cada slide deve conter um "lead", com até 2–3 frases curtas de contextualização.
+- Cada slide deve conter um "lead", com até 2 frases curtas de contextualização.
 - Devem conter o campo "image":
   - source="docx" exige "path" e proíbe "intent"
   - source="generated" exige "intent" e proíbe "path"
@@ -225,7 +211,7 @@ Lead rejeitado:
 - Cada núcleo conceitual deve iniciar com um slide do tipo "title".
 - O slide "title" deve ser sempre o primeiro slide.
 - O slide "title" deve conter apenas um campo "title".
-- O texto do campo "title" corresponde ao nome do núcleo conceitual.
+- O texto do campo "title" corresponde ao nome completo do núcleo conceitual
 - Não gerar subtítulo, lead, bullets, código ou imagem nesse slide.
 
 ## 6. IMAGENS
@@ -259,5 +245,5 @@ Imagem GERADA
 - JSON valido (sem trailing commas).
 - Campos obrigatorios presentes.
 - Nenhum texto fora do JSON.
-- Se o slides_plan.json possuir menos de 4 slides, refaça
-- Conteúdo completo é mais importante que limite de slides
+- O slides_plan.json deve possuir pelo menos 6 slides
+- Clareza no conteúdo é mais importante que limite de slides

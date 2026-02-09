@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -9,10 +11,15 @@ import requests
 from app.config.pipeline import GAMMA_POLL_INTERVAL_SECONDS, GAMMA_POLL_TIMEOUT_SECONDS
 from app.gamma.config import load_gamma_config
 from app.config.paths import APP_DIR
+from app.debug_payload import dump_payload
+from app.logging_utils import log_step
 
 
 GAMMA_BASE_URL = "https://public-api.gamma.app/v1.0/generations"
 GAMMA_FROM_TEMPLATE_URL = "https://public-api.gamma.app/v1.0/generations/from-template"
+
+
+log = logging.getLogger(__name__)
 
 
 def _build_headers(cfg: dict[str, Any]) -> dict[str, str]:
@@ -67,12 +74,52 @@ def _build_payload(input_text: str, cfg: dict[str, Any], endpoint: str) -> dict[
     return payload
 
 
-def create_generation(input_text: str, cfg: dict[str, Any]) -> str:
+def _preview_text(text: str, limit: int = 200) -> str:
+    cleaned = " ".join((text or "").split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "..."
+
+
+def _summarize_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    summary = dict(payload)
+    if "prompt" in summary:
+        prompt = summary.pop("prompt")
+        summary["prompt_len"] = len(prompt or "")
+        summary["prompt_preview"] = _preview_text(prompt or "")
+    if "inputText" in summary:
+        input_text = summary.pop("inputText")
+        summary["inputText_len"] = len(input_text or "")
+        summary["inputText_preview"] = _preview_text(input_text or "")
+    return summary
+
+
+def create_generation(
+    input_text: str,
+    cfg: dict[str, Any],
+    *,
+    context: str | None = None,
+) -> str:
     """Cria uma geracao no Gamma e retorna o generationId."""
     headers = _build_headers(cfg)
     endpoint = (cfg.get("endpoint") or "").strip().lower()
     payload = _build_payload(input_text, cfg, endpoint)
+    dump_path = dump_payload(payload)
+    log_step(
+        log,
+        context or "gamma",
+        "create_generation",
+        f"request_dump={dump_path}",
+        level=logging.DEBUG,
+    )
     url = GAMMA_FROM_TEMPLATE_URL if endpoint == "from-template" else GAMMA_BASE_URL
+    log_step(
+        log,
+        context or "gamma",
+        "create_generation",
+        f"request: {json.dumps(_summarize_payload(payload), ensure_ascii=False)}",
+        level=logging.DEBUG,
+    )
     resp = requests.post(url, headers=headers, json=payload, timeout=60)
     resp.raise_for_status()
     data = resp.json()
@@ -88,6 +135,7 @@ def wait_for_export_url(
     *,
     poll_interval: int | None = None,
     timeout_seconds: int | None = None,
+    context: str | None = None,
 ) -> dict[str, Any]:
     """Aguarda o exportUrl ficar disponivel."""
     headers = _build_headers(cfg)
@@ -97,6 +145,13 @@ def wait_for_export_url(
     url = f"{GAMMA_BASE_URL}/{generation_id}"
 
     while time.monotonic() < deadline:
+        log_step(
+            log,
+            context or "gamma",
+            "wait_for_export_url",
+            f"request: GET {url}",
+            level=logging.DEBUG,
+        )
         resp = requests.get(url, headers=headers, timeout=60)
         resp.raise_for_status()
         data = resp.json()
@@ -111,9 +166,16 @@ def wait_for_export_url(
     raise TimeoutError("Timeout aguardando exportUrl do Gamma.")
 
 
-def download_export(export_url: str, out_path: Path) -> None:
+def download_export(export_url: str, out_path: Path, *, context: str | None = None) -> None:
     """Baixa o PPTX exportado pelo Gamma."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    log_step(
+        log,
+        context or "gamma",
+        "download_export",
+        f"request: GET {export_url}",
+        level=logging.DEBUG,
+    )
     resp = requests.get(export_url, timeout=120)
     resp.raise_for_status()
     out_path.write_bytes(resp.content)
@@ -125,22 +187,24 @@ def generate_pptx_from_cards(
     *,
     poll_interval: int | None = None,
     timeout_seconds: int | None = None,
+    context: str | None = None,
 ) -> tuple[Path, int]:
     """Gera PPTX no Gamma a partir dos cards e salva localmente."""
     cfg = load_gamma_config()
     if not cfg:
         raise FileNotFoundError("gamma_config.json nao encontrado.")
-    generation_id = create_generation(input_text, cfg)
+    generation_id = create_generation(input_text, cfg, context=context)
     data = wait_for_export_url(
         generation_id,
         cfg,
         poll_interval=poll_interval,
         timeout_seconds=timeout_seconds,
+        context=context,
     )
     credits = data.get("credits") or {}
     deducted = int(credits.get("deducted") or 0)
     export_url = data.get("exportUrl")
     if not export_url:
         raise RuntimeError("exportUrl nao retornado pelo Gamma.")
-    download_export(export_url, out_path)
+    download_export(export_url, out_path, context=context)
     return out_path, deducted

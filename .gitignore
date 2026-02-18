@@ -15,3 +15,5 @@ terraform
 infra_agil
 template_ppt_graduacao_map.json
 .debug_llm
+app/config/openai_api_key
+app/prompts/openai_api_key

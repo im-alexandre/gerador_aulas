@@ -1,32 +1,39 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Root entry point: `app.py` runs the end-to-end flow (DOCX → JSON → PPTX).
-- Core logic: `app/docx_tagger.py`, `app/gpt_planner.py`, `app/pptx_renderer.py`, and modules in `app/`.
-- Configs and prompts: `app/config/` and `app/prompts/`.
-- Course data: `curso_*/` directories with DOCX files, `assets/`, and `roteiros/`.
-- Outputs: `slides_plan.json` and `*.pptx` inside each `modX_ncY` / `modX_npY`.
+- `app/`: core Python package (content splitting, slide planning, rendering, image generation).
+- `app/slide/`: slide kinds, validation, and PPTX rendering helpers (see `app/slide/README.md`).
+- `app/prompts/`: LLM and image prompts plus `openai_api_key` path used at runtime.
+- `terraform/`: course data inputs and outputs (modules/nuclei directories and `dist/`).
+- Root files: `app.py` (main entrypoint), `requirements.txt`, template files like `template_ppt_graduacao.pptx` and `template_ppt_graduacao_map.json`.
 
 ## Build, Test, and Development Commands
-- Full pipeline:
-  - `python .\app.py --curso-dir .\curso_exemplo_testes_software --force`
-  - Extrai roteiros do zip, gera `*_tagged.docx`, gera JSON e renderiza PPTX.
+- `python -m venv .venv`: create a local virtualenv.
+- `.venv\\Scripts\\Activate.ps1`: activate the virtualenv on Windows PowerShell.
+- `pip install -r requirements.txt`: install runtime dependencies.
+- `python app.py --curso-dir terraform --template-id graduacao`: process a course directory end-to-end.
+- `python app.py --curso-dir terraform --template-id graduacao --only mod1_nc1,mod1_nc2`: run selected nuclei only.
+- `python app.py --curso-dir terraform --template-id graduacao --reuse-assets`: skip image regeneration when assets already exist.
 
 ## Coding Style & Naming Conventions
-- Python: 4-space indentation and `snake_case` for variables and functions.
-- Keep prompts/instructions in `app/prompts/` and configs in `app/config/`.
-- Prefer constantes em `app/config/paths.py` e `app/config/pipeline.py`.
+- Python, 4-space indentation, UTF-8.
+- Follow PEP 8 naming: `snake_case` for functions/variables, `CamelCase` for classes, `UPPER_SNAKE_CASE` for constants.
+- Keep module imports ordered: standard library, third-party, then local.
+- No formatter or linter is configured; keep changes tight and readable.
 
 ## Testing Guidelines
-- No automated test suite is configured. If you add tests, document the framework and command here.
+- No automated test suite is present in this repository.
+- If you add tests, prefer `pytest` and keep names like `test_<feature>.py`.
+- Run targeted manual checks by executing `python app.py` with a small `--only` set.
 
 ## Commit & Pull Request Guidelines
-- Git history is not available; follow clear, action-oriented commit messages (e.g., “Adicionar validação do JSON do plano”).
-- PRs should include: a change summary, affected scripts, config/prompt updates when contracts change, and example outputs/logs for API changes.
+- Git history uses short, direct messages without a strict convention.
+- Recommended: imperative, concise, optionally scoped. Example: `render: handle missing image`.
+- PRs should include:
+  - Summary of changes and affected modules.
+  - How you validated (command output or manual run).
+  - Screenshots or sample PPTX outputs when modifying rendering/templates.
 
-## Security & Configuration Tips
-- Set `OPENAI_API_KEY` in the environment for GPT calls.
-- Review `app/config/paths.py` e `app/config/pipeline.py` before running.
-
-## Agent-Specific Instructions
-- Keep edits concise and repository-specific; prefer updating prompts/configs over hardcoding.
+## Security & Configuration Notes
+- API key file lives at `app/prompts/openai_api_key`; avoid exposing it in logs or commits.
+- Template changes require regenerating the map: delete `template_ppt_graduacao_map.json` to force rebuild on the next run.

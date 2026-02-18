@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import random
 import time
 from pathlib import Path
@@ -54,7 +53,7 @@ def extract_docx_text(path: Path) -> str:
 
 
 log = logging.getLogger(__name__)
-MAX_RETRIES = 5
+MAX_RETRIES = 1
 BASE_BACKOFF_SECONDS = 2
 
 
@@ -70,7 +69,7 @@ def with_backoff(fn, *args, **kwargs):
             delay = min(BASE_BACKOFF_SECONDS * (2 ** (attempt - 1)), 30)
             delay += random.uniform(0, 0.5)
             log.warning(
-                f"(with_backoff) Falha na API (tentativa {attempt}/{MAX_RETRIES}): {exc}"
+                f"(with_backoff) ({fn}) Falha na API (tentativa {attempt}/{MAX_RETRIES}): {exc}"
             )
             log.warning(
                 f"(with_backoff) Aguardando {delay:.1f}s antes de tentar novamente."
@@ -142,10 +141,9 @@ def call_llm(
     file_ids: list[str],
     user_input: str,
     directory: str,
-    use_code_interpreter: bool,
 ) -> tuple[str, dict]:
     """Chama o modelo com arquivos anexados e retorna o texto da resposta."""
-    tool_label = "code_interpreter" if use_code_interpreter else "none"
+    tool_label = "code_interpreter"
     log_step(
         log,
         directory,
@@ -165,17 +163,16 @@ def call_llm(
         "instructions": instructions,
         "input": user_input,
     }
-    if use_code_interpreter:
-        payload["tools"] = [
-            {
-                "type": "code_interpreter",
-                "container": {
-                    "type": "auto",
-                    "file_ids": file_ids,
-                },
-            }
-        ]
-        payload["tool_choice"] = "auto"
+    payload["tools"] = [
+        {
+            "type": "code_interpreter",
+            "container": {
+                "type": "auto",
+                "file_ids": file_ids,
+            },
+        }
+    ]
+    payload["tool_choice"] = {"type": "code_interpreter"}
     dump_path = dump_payload(payload)
     log_step(
         log,
@@ -223,55 +220,26 @@ def generate_plan(
     model: str,
     directory: str,
     strict_json: bool = False,
-    use_code_interpreter: bool = True,
 ) -> tuple[dict, dict]:
     """Gera o plano de slides (JSON) a partir de conteúdo e roteiro."""
-    if use_code_interpreter:
-        content_id = upload_file(client, content_docx)
-        roteiro_id = upload_file(client, roteiro_docx)
-        file_ids = [content_id, roteiro_id]
-        user_input = (
-            "Use o code_interpreter para abrir e ler os 2 DOCX anexados.\n"
-            "Extraia a ordem de tópicos do DOCX de CONTEÚDO.\n"
-            "O ROT é apenas referência editorial (título e ordem macro).\n"
-            "É PROIBIDO reutilizar exemplos do prompt.\n"
-            "Se um conceito não estiver no DOCX, não invente.\n"
-            "Retorne APENAS JSON válido conforme o contrato."
-        )
-        log_step(
-            log,
-            directory,
-            "upload_file",
-            "Arquivos de conteudo + roteiro incluidos no pipeline",
-        )
-        log_step(log, directory, "call_llm", "LLM processando dados (code_interpreter)")
-    else:
-        content_text = extract_docx_text(content_docx)
-        roteiro_text = extract_docx_text(roteiro_docx)
-        file_ids = []
-        user_input = (
-            "Os textos extraidos dos DOCX seguem abaixo. Use-os diretamente.\n"
-            "NAO chame ferramentas.\n"
-            "Extraia a ordem de topicos do TEXTO de CONTEUDO.\n"
-            "O ROT é apenas referencia editorial (titulo e ordem macro).\n"
-            "É PROIBIDO reutilizar exemplos do prompt.\n"
-            "Se um conceito nao estiver no texto, nao invente.\n"
-            "Retorne APENAS JSON valido conforme o contrato.\n\n"
-            "CONTEUDO_DOCX:\n"
-            "<<<\n"
-            f"{content_text}\n"
-            ">>>\n\n"
-            "ROTEIRO_DOCX:\n"
-            "<<<\n"
-            f"{roteiro_text}\n"
-            ">>>"
-        )
-        log_step(
-            log,
-            directory,
-            "call_llm",
-            "LLM processando dados (texto inline)",
-        )
+    content_id = upload_file(client, content_docx)
+    roteiro_id = upload_file(client, roteiro_docx)
+    file_ids = [content_id, roteiro_id]
+    user_input = (
+        "Use o code_interpreter para abrir e ler os 2 DOCX anexados.\n"
+        "Extraia a ordem de tópicos do DOCX de CONTEÚDO.\n"
+        "O ROT é apenas referência editorial (título e ordem macro).\n"
+        "É PROIBIDO reutilizar exemplos do prompt.\n"
+        "Se um conceito não estiver no DOCX, não invente.\n"
+        "Retorne APENAS JSON válido conforme o contrato."
+    )
+    log_step(
+        log,
+        directory,
+        "upload_file",
+        "Arquivos de conteudo + roteiro incluidos no pipeline",
+    )
+    log_step(log, directory, "call_llm", "LLM processando dados")
     response_text, usage = call_llm(
         client=client,
         model=model,
@@ -279,7 +247,6 @@ def generate_plan(
         file_ids=file_ids,
         directory=directory,
         user_input=user_input,
-        use_code_interpreter=use_code_interpreter,
     )
     if strict_json:
         return parse_json_strict(response_text), usage
@@ -287,6 +254,7 @@ def generate_plan(
 
 
 def generate_plan_for_dir(
+    api_key_path: str,
     content_docx: Path,
     roteiro_docx: Path,
     prompt_md: str,
@@ -305,10 +273,11 @@ def generate_plan_for_dir(
             "Plano existente (reaproveitado)",
         )
         return None, None
-    if not os.getenv("OPENAI_API_KEY"):
-        raise SystemExit("Defina OPENAI_API_KEY.")
 
-    client = OpenAI()
+    with open("app/prompts/openai_api_key") as key_file:
+        api_key = key_file.read().strip()
+
+    client = OpenAI(api_key=api_key)
     plan, usage = generate_plan(
         client=client,
         prompt_md=prompt_md,
@@ -317,7 +286,6 @@ def generate_plan_for_dir(
         model=model,
         directory=content_docx.parent.name,
         strict_json=strict_json,
-        use_code_interpreter=use_code_interpreter,
     )
     log_step(
         log,

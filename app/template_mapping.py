@@ -104,6 +104,15 @@ def ensure_template_mapping(
     return map_path
 
 
+def validate_template_layouts(
+    pptx_path: Path,
+    *,
+    wanted: dict[str, list[str]] | None = None,
+) -> None:
+    """Valida que o template contém os layouts e placeholders esperados."""
+    build_mapping_from_existing_slides(pptx_path, wanted=wanted)
+
+
 def load_or_build_mapping(
     pptx_path: Path,
     map_path: Path,

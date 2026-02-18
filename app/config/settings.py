@@ -5,6 +5,7 @@ from app.config.paths import (
     PROJECT_ROOT,
     PROMPT_MD,
     ROTEIROS_DIRNAME,
+    TEMPLATE_CATALOG,
     TEMPLATE_PPTX,
 )
 from app.config.pipeline import DEFAULT_MODEL, EXCLUDE_DIRS, ROTEIRO_PATTERN
@@ -13,6 +14,7 @@ __all__ = [
     "APP_DIR",
     "PROJECT_ROOT",
     "PROMPT_MD",
+    "TEMPLATE_CATALOG",
     "TEMPLATE_PPTX",
     "ASSETS_DIRNAME",
     "ROTEIROS_DIRNAME",

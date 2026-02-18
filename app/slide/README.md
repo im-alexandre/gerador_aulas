@@ -36,8 +36,10 @@ exemplo no template com placeholders nomeados:
 Esses nomes são lidos no slide exemplo para descobrir o `placeholder_format.idx`,
 e o renderer usa o `idx` para preencher slides gerados.
 
-O mapping é salvo como `*_map.json` ao lado do template.
-Se você trocar o template, apague o `_map.json` para forçar a regeneração.
+O mapping é salvo como `*_map.json` ao lado de cada template.
+Com múltiplos templates (ex.: `template_ppt_graduacao.pptx`, `template_ppt_tecnico.pptx`),
+cada arquivo tem seu próprio `_map.json`. Se trocar um template, apague o `_map.json`
+correspondente para forçar a regeneração.
 
 Se o placeholder não existir no layout escolhido, aquele elemento **não é renderizado**.
 
@@ -149,7 +151,7 @@ from app.slide.diagram_slide import DiagramSlide
 
 No PowerPoint:
 
-1. Abra o template
+1. Abra o template desejado (ex.: graduação ou técnico)
 2. Vá em `Exibir > Slide Mestre`
 3. Crie um layout chamado exatamente `layout_diagram`
 4. Adicione shapes com os nomes:

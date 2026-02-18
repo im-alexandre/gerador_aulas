@@ -15,7 +15,6 @@ from app.image_generator import (
 )
 from app.pptx_renderer import load_plan, render_from_plan
 from app.slide import validate_plan
-from app.openai_cost import compute_llm_cost
 from app.logging_utils import log_step
 
 
@@ -23,6 +22,7 @@ log = logging.getLogger(__name__)
 
 
 def process_nucleus_dir(
+    api_key_path: str,
     nucleus_dir: Path,
     course_dir: Path,
     prompt_md: str,
@@ -34,8 +34,8 @@ def process_nucleus_dir(
     force: bool,
     use_code_interpreter: bool = False,
     generate_images: bool = True,
-    image_provider: str = "gamma",
-) -> dict[str, object]:
+    image_provider: str = "openai",
+):
     """Processa um núcleo: tag -> JSON -> render."""
     content_docx = find_content_docx(nucleus_dir)
     roteiro_docx = find_roteiro_docx(nucleus_dir)
@@ -47,7 +47,7 @@ def process_nucleus_dir(
             "process_nucleus_dir",
             "Documentos de conteudo/roteiro nao encontrados",
         )
-        return {"gamma_deducted": 0}
+        return
 
     tagged_docx = nucleus_dir / f"{nucleus_dir.name}_tagged.docx"
     assets_dir = course_dir / ASSETS_DIRNAME / nucleus_dir.name
@@ -91,10 +91,10 @@ def process_nucleus_dir(
         force=force,
         strict_json=True,
         use_code_interpreter=use_code_interpreter,
+        api_key_path=api_key_path,
     )
     if plan is None and plan_json.exists():
         plan = load_plan(plan_json)
-        usage = None
 
     if plan is None:
         log_step(
@@ -144,7 +144,7 @@ def process_nucleus_dir(
                 level=logging.DEBUG,
             )
 
-    created_openai, openai_images_cost = openai_materialize_generated_images(
+    created_openai = openai_materialize_generated_images(
         plan,
         course_dir=course_dir,
         nucleus_name=nucleus_dir.name,
@@ -170,7 +170,9 @@ def process_nucleus_dir(
             f"Imagens OpenAI reaproveitadas: {created_openai}",
             level=logging.DEBUG,
         )
-    plan_json.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    plan_json.write_text(
+        json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     output_pptx = nucleus_dir / f"{nucleus_dir.name}.pptx"
     log_step(
@@ -193,9 +195,3 @@ def process_nucleus_dir(
         f"PPTX gerado: {output_pptx}",
         level=logging.DEBUG,
     )
-    llm_cost = compute_llm_cost(model, usage)
-    return {
-        "gamma_deducted": gamma_deducted,
-        "openai_llm": llm_cost,
-        "openai_images": openai_images_cost,
-    }

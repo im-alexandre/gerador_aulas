@@ -1,33 +1,12 @@
 from __future__ import annotations
 
 import logging
-from itertools import cycle
-
-
-_COLOR_CODES = [
-    "\x1b[38;5;33m",   # blue
-    "\x1b[38;5;70m",   # green
-    "\x1b[38;5;214m",  # orange
-    "\x1b[38;5;135m",  # purple
-    "\x1b[38;5;44m",   # teal
-    "\x1b[38;5;203m",  # red
-]
-_RESET = "\x1b[0m"
-_COLOR_MAP: dict[str, str] = {}
-_COLOR_POOL = cycle(_COLOR_CODES)
-
-
-def _color_for_thread(name: str) -> str:
-    if name not in _COLOR_MAP:
-        _COLOR_MAP[name] = next(_COLOR_POOL)
-    return _COLOR_MAP[name]
 
 
 class ColorFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         base = super().format(record)
-        color = _color_for_thread(record.threadName or "main")
-        return f"{color}{base}{_RESET}"
+        return f"{base}"
 
 
 class SuppressNoisyFilter(logging.Filter):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -157,9 +156,6 @@ def materialize_generated_images_for_plan(
     if not tasks:
         return 0, {"model": model, "size": size, "count": 0, "cost_usd": 0}
 
-    if generate_images and not os.getenv("OPENAI_API_KEY"):
-        raise SystemExit("Defina OPENAI_API_KEY.")
-
     if not generate_images:
         reused = 0
         for slide, rel, out_path, _prompt, _slide_id in tasks:
@@ -187,7 +183,9 @@ def materialize_generated_images_for_plan(
             ),
             level=logging.DEBUG,
         )
-        client = OpenAI()
+        with open("app/prompts/openai_api_key") as key_file:
+            api_key = key_file.read().strip()
+        client = OpenAI(api_key=api_key)
         generate_image_png(
             client=client,
             prompt=prompt,
@@ -212,7 +210,3 @@ def materialize_generated_images_for_plan(
                 image["path"] = rel
                 slide["image"] = image
             generated += 1
-
-    from app.openai_cost import compute_image_cost
-
-    return generated, compute_image_cost(model, size, generated)

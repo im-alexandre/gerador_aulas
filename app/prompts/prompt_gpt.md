@@ -69,7 +69,7 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
 
 ### REGRA DE DENSIDADE (OBRIGATÓRIA)
 
-- Crie de 6 a 10 slides
+- Crie de 4 ou 5 slides
 - Utilize todos os conceitos e definições explicados ao longo do material
 
 ### REGRA DE PRESERVAÇÃO (OBRIGATÓRIA)
@@ -105,10 +105,10 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
 ## 5. REGRAS EDITORIAIS DOS SLIDES
 
 - Slides "standard" devem ter lead
-- Nesse caso, gere 3 ou 4 bullets.
-- Bullets devem ser frases técnicas resumidas, tratando de UMA única ideia.
-- Um bullet pode conter causa e consequência, mas não deve concluir o assunto nem funcionar como observação final.
-- Bullets devem ser resumidos e explicativos
+- Nesse caso, gere 3 bullets curtos.
+- Bullets devem ser frases ou expressões técnicas resumidas, tratando de UMA única ideia.
+- Bullets devem ser bem resumidos
+- Evite conteúdo redundante
 - Não gere observações finais, notas ou texto corrido fora do campo "lead".
 
 ## REGRA ESPECIAL — mod0_vidint (VÍDEO INTRODUTÓRIO)
@@ -158,7 +158,6 @@ Essas regras SOBRESCREVEM regras gerais em caso de conflito.
   - blocos extensos de texto
   - frases longas com múltiplas orações
   - texto que possa ser lido como um parágrafo contínuo
-- Se o conteúdo exigir explicação longa, ele DEVE ser dividido em múltiplos slides.
 
 - Slides com excesso de texto, independentemente do kind, devem ser considerados inválidos.
 - O modelo deve preferir criar mais slides a condensar conteúdo demais em um único slide.
@@ -186,7 +185,7 @@ Lead rejeitado:
 
 #### Regras para slides "standard":
 
-- Cada slide deve conter um "lead", com até 2 frases curtas de contextualização.
+- Cada slide deve conter um "lead", com 1 frase curtas de contextualização.
 - Devem conter o campo "image":
   - source="docx" exige "path" e proíbe "intent"
   - source="generated" exige "intent" e proíbe "path"
@@ -245,5 +244,6 @@ Imagem GERADA
 - JSON valido (sem trailing commas).
 - Campos obrigatorios presentes.
 - Nenhum texto fora do JSON.
+- _RESPOSTA SÓ PODE CONTER JSON!!!_
 - O slides_plan.json deve possuir pelo menos 6 slides
 - Clareza no conteúdo é mais importante que limite de slides

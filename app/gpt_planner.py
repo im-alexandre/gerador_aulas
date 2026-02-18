@@ -8,8 +8,10 @@ from pathlib import Path
 
 from openai import OpenAI
 
+from app.config.paths import APP_DIR, USER_INPUT_SLIDES
 from app.debug_payload import dump_payload
 from app.logging_utils import log_step
+from app.prompt_utils import render_prompt_template
 
 
 from docx import Document
@@ -225,14 +227,7 @@ def generate_plan(
     content_id = upload_file(client, content_docx)
     roteiro_id = upload_file(client, roteiro_docx)
     file_ids = [content_id, roteiro_id]
-    user_input = (
-        "Use o code_interpreter para abrir e ler os 2 DOCX anexados.\n"
-        "Extraia a ordem de tópicos do DOCX de CONTEÚDO.\n"
-        "O ROT é apenas referência editorial (título e ordem macro).\n"
-        "É PROIBIDO reutilizar exemplos do prompt.\n"
-        "Se um conceito não estiver no DOCX, não invente.\n"
-        "Retorne APENAS JSON válido conforme o contrato."
-    )
+    user_input = render_prompt_template(APP_DIR / USER_INPUT_SLIDES)
     log_step(
         log,
         directory,

@@ -37,3 +37,4 @@
 ## Security & Configuration Notes
 - API key file lives at `app/prompts/openai_api_key`; avoid exposing it in logs or commits.
 - Template changes require regenerating the map: delete `template_ppt_graduacao_map.json` to force rebuild on the next run.
+- User inputs for image and slide planning live in templates: `app/prompts/user_input_imagem.j2` and `app/prompts/user_input_slides.j2`.

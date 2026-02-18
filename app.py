@@ -71,12 +71,6 @@ def parse_args() -> argparse.Namespace:
         help="Modelo OpenAI para geracao de imagens.",
     )
     ap.add_argument(
-        "--image-size",
-        choices=["1024x1024", "1024x1536", "1536x1024"],
-        default=OPENAI_IMAGE_SIZE,
-        help="Tamanho da imagem gerada.",
-    )
-    ap.add_argument(
         "--image-quality",
         choices=["low", "medium", "high"],
         default=OPENAI_IMAGE_QUALITY,
@@ -107,11 +101,20 @@ def main() -> None:
     prompt_path = resolve_prompt_path(APP_DIR, PROMPT_MD)
     prompt_md = prompt_path.read_text(encoding="utf-8")
 
+    template_id = (args.template_id or "").strip().lower()
     template_path = resolve_template_id(
         PROJECT_ROOT,
-        args.template_id,
+        template_id,
         TEMPLATE_CATALOG,
     )
+
+    if template_id == "graduacao":
+        image_size = "1024x1536"
+    elif template_id == "tecnico":
+        image_size = "1536x1024"
+    else:
+        image_size = OPENAI_IMAGE_SIZE
+
     if not template_path.exists():
         raise SystemExit(f"Template não encontrado: {template_path}")
     ensure_template_mapping(template_path, force=args.force)
@@ -154,7 +157,7 @@ def main() -> None:
                 prompt_md=prompt_md,
                 model=args.model,
                 image_model=args.image_model,
-                image_size=args.image_size,
+                image_size=image_size,
                 image_quality=args.image_quality,
                 template_path=template_path,
                 force=args.force,

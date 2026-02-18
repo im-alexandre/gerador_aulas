@@ -8,6 +8,7 @@ from typing import Any
 
 from openai import OpenAI
 
+from app.config.paths import APP_DIR, USER_INPUT_IMAGE
 from app.config.pipeline import (
     IMAGE_WORKERS,
     OPENAI_IMAGE_MODEL,
@@ -16,6 +17,7 @@ from app.config.pipeline import (
 )
 from app.debug_payload import dump_payload
 from app.logging_utils import log_step
+from app.prompt_utils import render_prompt_template
 
 
 log = logging.getLogger(__name__)
@@ -35,26 +37,13 @@ def _img_prompt_from_slide(slide: dict[str, Any]) -> str:
         f"- {b}" for b in bullets[:6] if isinstance(b, str) and b.strip()
     )
 
-    return (
-        "Crie uma imagem para slide de aula (PowerPoint), limpa e didatica.\n"
-        "Estilo: vetorial/flat, fundo claro, poucas cores, sem texto legivel, sem logos, sem marcas d'agua.\n"
-        "Use icones genericos, formas simples, setas, fluxo e agrupamento visual.\n\n"
-        "CONTEXTO DO SLIDE (APENAS PARA COMPREENSÃO, NAO VISUAL):\n"
-        "O texto abaixo e fornecido SOMENTE para orientar o conceito da imagem.\n"
-        "NAO deve aparecer na imagem, nem parcial nem indiretamente.\n\n"
-        f"TITULO DO SLIDE: {title}\n"
-        f"LEAD (contexto): {lead}\n"
-        f"BULLETS (pontos):\n{bullets_txt}\n\n"
-        "REGRAS DE TEXTO NA IMAGEM (STRICT):\n"
-        "- PROIBIDO qualquer texto, letra, numero ou pseudo-texto.\n"
-        "- PROIBIDO caracteres embaralhados ou simbolos que imitem escrita.\n"
-        "- NAO usar rotulos, legendas ou captions.\n"
-        "- Use APENAS icones, formas, setas, cores e agrupamento visual.\n\n"
-        f"INTENT (o que precisa comunicar visualmente): {intent}\n\n"
-        "Se houver conflito entre o contexto do slide e as regras visuais,\n"
-        "as regras visuais SEMPRE prevalecem.\n"
-        "Entregue uma unica composicao clara que represente o intent."
-    ).strip()
+    return render_prompt_template(
+        APP_DIR / USER_INPUT_IMAGE,
+        title=title,
+        lead=lead,
+        bullets_txt=bullets_txt,
+        intent=intent,
+    )
 
 
 def generate_image_png(

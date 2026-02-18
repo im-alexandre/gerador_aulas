@@ -7,6 +7,8 @@ from app.config.paths import (
     ROTEIROS_DIRNAME,
     TEMPLATE_CATALOG,
     TEMPLATE_PPTX,
+    USER_INPUT_IMAGE,
+    USER_INPUT_SLIDES,
 )
 from app.config.pipeline import DEFAULT_MODEL, EXCLUDE_DIRS, ROTEIRO_PATTERN
 
@@ -16,6 +18,8 @@ __all__ = [
     "PROMPT_MD",
     "TEMPLATE_CATALOG",
     "TEMPLATE_PPTX",
+    "USER_INPUT_IMAGE",
+    "USER_INPUT_SLIDES",
     "ASSETS_DIRNAME",
     "ROTEIROS_DIRNAME",
     "PLAN_JSON_NAME",

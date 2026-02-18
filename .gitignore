@@ -10,6 +10,7 @@ openai_cost.json
 custos/
 *.pptx
 !template_ppt_graduacao.pptx
+!template_ppt_tecnico.pptx
 *.codex
 terraform
 infra_agil
@@ -17,3 +18,6 @@ template_ppt_graduacao_map.json
 .debug_llm
 app/config/openai_api_key
 app/prompts/openai_api_key
+O Professor Sintético_ Automação além da Infra.mp4
+consolidacao_gerador_conteudo.md
+template_ppt_tecnico_map.json

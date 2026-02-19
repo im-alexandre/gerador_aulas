@@ -55,7 +55,7 @@ def extract_docx_text(path: Path) -> str:
 
 
 log = logging.getLogger(__name__)
-MAX_RETRIES = 1
+MAX_RETRIES = 5
 BASE_BACKOFF_SECONDS = 2
 
 
@@ -95,45 +95,6 @@ def upload_file(client: OpenAI, path: Path) -> str:
     with open(path, "rb") as fh:
         f = with_backoff(client.files.create, file=fh, purpose="user_data")
     return f.id
-
-
-def _extract_usage(resp) -> dict:
-    usage: dict = {}
-    raw = getattr(resp, "usage", None)
-    if raw is None and isinstance(resp, dict):
-        raw = resp.get("usage")
-    if raw is None:
-        return usage
-
-    def _get(obj, key: str):
-        if isinstance(obj, dict):
-            return obj.get(key)
-        return getattr(obj, key, None)
-
-    input_tokens = _get(raw, "input_tokens")
-    input_tokens_cached = _get(raw, "input_tokens_cached")
-    output_tokens = _get(raw, "output_tokens")
-    total_tokens = _get(raw, "total_tokens")
-
-    if input_tokens is None:
-        input_tokens = _get(raw, "prompt_tokens")
-    if output_tokens is None:
-        output_tokens = _get(raw, "completion_tokens")
-    if input_tokens_cached is None:
-        input_tokens_cached = _get(raw, "prompt_tokens_cached")
-
-    if input_tokens is not None:
-        usage["prompt_tokens"] = int(input_tokens)
-    if input_tokens_cached is not None:
-        usage["prompt_cached_tokens"] = int(input_tokens_cached)
-    if output_tokens is not None:
-        usage["completion_tokens"] = int(output_tokens)
-    if total_tokens is not None:
-        usage["total_tokens"] = int(total_tokens)
-    elif input_tokens is not None and output_tokens is not None:
-        usage["total_tokens"] = int(input_tokens) + int(output_tokens)
-
-    return usage
 
 
 def call_llm(
@@ -187,8 +148,7 @@ def call_llm(
         client.responses.create,
         **payload,
     )
-    usage = _extract_usage(resp)
-    return (resp.output_text or "").strip(), usage
+    return (resp.output_text or "").strip()
 
 
 def extract_json(text: str) -> dict:
@@ -222,7 +182,7 @@ def generate_plan(
     model: str,
     directory: str,
     strict_json: bool = False,
-) -> tuple[dict, dict]:
+) -> dict:
     """Gera o plano de slides (JSON) a partir de conteúdo e roteiro."""
     content_id = upload_file(client, content_docx)
     roteiro_id = upload_file(client, roteiro_docx)
@@ -235,7 +195,7 @@ def generate_plan(
         "Arquivos de conteudo + roteiro incluidos no pipeline",
     )
     log_step(log, directory, "call_llm", "LLM processando dados")
-    response_text, usage = call_llm(
+    response_text = call_llm(
         client=client,
         model=model,
         instructions=prompt_md,
@@ -244,12 +204,12 @@ def generate_plan(
         user_input=user_input,
     )
     if strict_json:
-        return parse_json_strict(response_text), usage
-    return extract_json(response_text), usage
+        return parse_json_strict(response_text)
+    return extract_json(response_text)
 
 
 def generate_plan_for_dir(
-    api_key_path: str,
+    api_key_override: str | None,
     content_docx: Path,
     roteiro_docx: Path,
     prompt_md: str,
@@ -258,7 +218,7 @@ def generate_plan_for_dir(
     force: bool = False,
     strict_json: bool = False,
     use_code_interpreter: bool = True,
-) -> tuple[dict | None, dict | None]:
+) -> dict | None:
     """Gera e salva o JSON do plano para um diretório de núcleo."""
     if output_json.exists() and not force:
         log_step(
@@ -267,13 +227,16 @@ def generate_plan_for_dir(
             "generate_plan_for_dir",
             "Plano existente (reaproveitado)",
         )
-        return None, None
+        return None
 
-    with open("app/prompts/openai_api_key") as key_file:
-        api_key = key_file.read().strip()
+    if api_key_override:
+        api_key = api_key_override.strip()
+    else:
+        with open("app/prompts/openai_api_key") as key_file:
+            api_key = key_file.read().strip()
 
     client = OpenAI(api_key=api_key)
-    plan, usage = generate_plan(
+    plan = generate_plan(
         client=client,
         prompt_md=prompt_md,
         content_docx=content_docx,
@@ -299,4 +262,4 @@ def generate_plan_for_dir(
         f"Plano gerado: {output_json}",
         level=logging.DEBUG,
     )
-    return plan, usage
+    return plan

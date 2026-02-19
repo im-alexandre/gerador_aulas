@@ -98,6 +98,7 @@ def materialize_generated_images_for_plan(
     quality: str | None = OPENAI_IMAGE_QUALITY,
     max_workers: int | None = None,
     generate_images: bool = True,
+    api_key_override: str | None = None,
 ) -> tuple[int, dict]:
     """
     Para cada slide standard com image.source="generated":
@@ -172,8 +173,11 @@ def materialize_generated_images_for_plan(
             ),
             level=logging.DEBUG,
         )
-        with open("app/prompts/openai_api_key") as key_file:
-            api_key = key_file.read().strip()
+        if api_key_override:
+            api_key = api_key_override.strip()
+        else:
+            with open("app/prompts/openai_api_key") as key_file:
+                api_key = key_file.read().strip()
         client = OpenAI(api_key=api_key)
         generate_image_png(
             client=client,

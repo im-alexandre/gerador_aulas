@@ -14,6 +14,7 @@
 - `python app.py --curso-dir terraform --template-id graduacao`: process a course directory end-to-end.
 - `python app.py --curso-dir terraform --template-id graduacao --only mod1_nc1,mod1_nc2`: run selected nuclei only.
 - `python app.py --curso-dir terraform --template-id graduacao --reuse-assets`: skip image regeneration when assets already exist.
+- `python -m app.gui`: launch the GUI.
 
 ## Coding Style & Naming Conventions
 - Python, 4-space indentation, UTF-8.

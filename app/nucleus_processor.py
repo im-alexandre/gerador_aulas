@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 def process_nucleus_dir(
-    api_key_path: str,
+    api_key_override: str | None,
     nucleus_dir: Path,
     course_dir: Path,
     prompt_md: str,
@@ -83,6 +83,7 @@ def process_nucleus_dir(
 
     plan_json = nucleus_dir / PLAN_JSON_NAME
     plan, usage = generate_plan_for_dir(
+        api_key_override=api_key_override,
         content_docx=tagged_docx,
         roteiro_docx=roteiro_docx,
         prompt_md=prompt_md,
@@ -91,7 +92,6 @@ def process_nucleus_dir(
         force=force,
         strict_json=True,
         use_code_interpreter=use_code_interpreter,
-        api_key_path=api_key_path,
     )
     if plan is None and plan_json.exists():
         plan = load_plan(plan_json)
@@ -153,6 +153,7 @@ def process_nucleus_dir(
         size=image_size,
         quality=image_quality,
         generate_images=generate_images,
+        api_key_override=api_key_override,
     )
     if generate_images:
         log_step(

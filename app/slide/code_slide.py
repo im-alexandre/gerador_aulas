@@ -19,16 +19,21 @@ class CodeSlide(BaseSlide):
     @classmethod
     def validate(cls, slide: dict, assets_base, idx: int) -> list[str]:
         errors = cls.validate_common(slide, idx)
-        if slide.get("image"):
-            errors.append(f"Slide {idx}: kind=code não pode ter imagem.")
+        image = slide.get("image") or {}
+        if (image.get("path") or "").strip() or (image.get("intent") or "").strip():
+            errors.append(f"Slide {idx}: kind=code não usa imagem.")
 
-        code = slide.get("code")
+        code = slide.get("code") or {}
         if not isinstance(code, dict):
             errors.append(f"Slide {idx}: code ausente ou inválido.")
         else:
             code_text = code.get("text")
             if not isinstance(code_text, str) or not code_text.strip():
                 errors.append(f"Slide {idx}: code.text ausente ou vazio.")
+
+            code_language = code.get("language")
+            if not isinstance(code_language, str) or not code_language.strip():
+                errors.append(f"Slide {idx}: code.language ausente ou vazio.")
         return errors
 
     @classmethod

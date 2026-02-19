@@ -1,0 +1,62 @@
+{
+  "name": "slide_plan_v1",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "module": { "type": "string" },
+      "nucleus": { "type": "string" },
+      "slides": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "slide_id": { "type": "string" },
+            "kind": { "type": "string", "enum": ["title", "standard", "code"] },
+            "title": { "type": "string" },
+
+            "lead": { "type": "string" },
+            "bullets": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+
+            "image": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source": { "type": "string", "enum": ["docx", "generated"] },
+                "path": { "type": "string" },
+                "intent": { "type": "string" }
+              },
+              "required": ["source", "path", "intent"]
+            },
+
+            "code": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "language": { "type": "string" },
+                "text": { "type": "string" }
+              },
+              "required": ["language", "text"]
+            }
+          },
+          "required": [
+            "slide_id",
+            "kind",
+            "title",
+            "lead",
+            "bullets",
+            "image",
+            "code"
+          ]
+        }
+      }
+    },
+    "required": ["module", "nucleus", "slides"]
+  }
+}

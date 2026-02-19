@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable
 
 from pptx import Presentation
 
@@ -61,14 +60,10 @@ def build_mapping_from_existing_slides(
                     mapping["idx"][layout_name] = found
 
         if layout_name not in mapping["idx"]:
-            raise RuntimeError(
-                f"Não achei slide exemplo para layout '{layout_name}'."
-            )
+            raise RuntimeError(f"Não achei slide exemplo para layout '{layout_name}'.")
         missing = [n for n in names if n not in mapping["idx"][layout_name]]
         if missing:
-            raise RuntimeError(
-                f"Layout '{layout_name}' sem placeholders: {missing}"
-            )
+            raise RuntimeError(f"Layout '{layout_name}' sem placeholders: {missing}")
 
     return mapping
 

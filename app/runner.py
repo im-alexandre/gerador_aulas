@@ -179,7 +179,14 @@ def run_pipeline(
 
     log_step(log, course_dir.name, "copy_dist", f"Apresentacoes prontas ({copied})")
     _log(f"Apresentações prontas ({copied}).")
-    client = OpenAI(api_key=config.openai_api_key)
+
+    if config.openai_api_key is None:
+        with open("app/prompts/openai_api_key") as key_file:
+            api_key = key_file.read().strip()
+            client = OpenAI(api_key=api_key)
+    else:
+        client = OpenAI(api_key=config.openai_api_key)
+
     files = client.files.list()
     _log("Deletando arquivos da nuvem OpenAi")
     for f in files:

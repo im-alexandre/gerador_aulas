@@ -14,9 +14,13 @@ class TitleSlide(BaseSlide):
     @classmethod
     def validate(cls, slide: dict, assets_base, idx: int) -> list[str]:
         errors = cls.validate_common(slide, idx)
-        if slide.get("image"):
+        image = slide.get("image") or {}
+        code = slide.get("code") or {}
+        if (image.get("path") or "").strip() or (image.get("intent") or "").strip():
             errors.append(f"Slide {idx}: kind=title não usa imagem.")
-        if slide.get("code"):
+
+        # code existe por causa do schema, mas deve ser "vazio"
+        if (code.get("language") or "").strip() or (code.get("text") or "").strip():
             errors.append(f"Slide {idx}: kind=title não usa code.")
         return errors
 

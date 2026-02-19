@@ -30,10 +30,6 @@ O texto do roteiro **não deve ser usado para gerar explicações, conceitos ou 
 
 > IMPORTANTE: se o arquivo de roteiro contiver apenas orientações editoriais, ele NÃO deve influenciar o conteúdo dos bullets.
 
-## 2. SAIDA (JSON ONLY)
-
-Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
-
 ## 3. CONTRATO DE SAIDA (JSON)
 
 ```json
@@ -44,7 +40,11 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
     {
       "slide_id": "s00",
       "kind": "title",
-      "title": "TÍTULO DO NÚCLEO CONCEITUAL"
+      "title": "TÍTULO DO NÚCLEO CONCEITUAL",
+      "lead": "",
+      "bullets": [],
+      "image": { "source": "generated", "path": "", "intent": "" },
+      "code": { "language": "", "text": "" }
     },
     {
       "slide_id": "s01",
@@ -56,14 +56,50 @@ Retorne APENAS JSON valido, sem Markdown, sem comentarios, sem texto extra.
         "Aspecto estrutural do tema",
         "Relação entre elementos"
       ],
-      "image": {
-        "source": "generated",
-        "intent": "descrição do conceito como encadeamento de ideias"
-      }
+      "image": { "source": "generated", "path": "", "intent": "descrição do conceito como encadeamento de ideias" },
+      "code": { "language": "", "text": "" }
+    },
+    {
+      "slide_id": "s02",
+      "kind": "code",
+      "title": "Título do slide de código",
+      "lead": "",
+      "bullets": [
+        "Explica o propósito do trecho",
+        "Explica o efeito do comando"
+      ],
+      "image": { "source": "generated", "path": "", "intent": "" },
+      "code": { "language": "bash", "text": "echo \"hello\"" }
     }
   ]
 }
 ```
+
+
+## 3.1 PREENCHIMENTO OBRIGATÓRIO (COMPATIBILIDADE COM SCHEMA)
+
+Para cumprir o schema STRICT da API, TODOS os slides DEVEM conter SEMPRE os campos:
+- slide_id, kind, title, lead, bullets, image, code
+
+Regras de preenchimento por tipo:
+- kind="title":
+  - lead="" ; bullets=[]
+  - image={ "source":"generated", "path":"", "intent":"" }
+  - code={ "language":"", "text":"" }
+
+- kind="standard":
+  - lead obrigatório (<=120 chars quando aplicável)
+  - bullets: 3 itens curtos
+  - code={ "language":"", "text":"" }
+  - image:
+    - source="docx"  => path preenchido, intent=""
+    - source="generated" => intent preenchido, path=""
+
+- kind="code":
+  - lead="" (NÃO usar lead)
+  - bullets explicativos permitidos/obrigatórios
+  - image={ "source":"generated", "path":"", "intent":"" } (NÃO gerar imagem)
+  - code.language e code.text obrigatórios
 
 ## 4. REGRAS DE PLANEJAMENTO
 
@@ -202,7 +238,7 @@ Lead rejeitado:
 - Cada bullet deve explicar o propósito ou efeito de um trecho do código.
 - O código deve permanecer legível e focado apenas na estrutura executável.
 - NÃO devem conter o campo "lead".
-- NÃO devem conter imagens nem o campo "image_intent".
+- NÃO devem gerar imagem. Preencha image com intent vazio para cumprir o schema.
 - Devem conter apenas código e bullets explicativos.
 
 #### SLIDE DE TÍTULO
@@ -241,9 +277,6 @@ Imagem GERADA
 
 ## 7. VALIDACAO FINAL
 
-- JSON valido (sem trailing commas).
 - Campos obrigatorios presentes.
-- Nenhum texto fora do JSON.
-- _RESPOSTA SÓ PODE CONTER JSON!!!_
 - O slides_plan.json deve possuir pelo menos 6 slides
 - Clareza no conteúdo é mais importante que limite de slides

@@ -5,6 +5,7 @@ import logging
 import random
 import time
 from pathlib import Path
+from typing import Any
 
 from openai import OpenAI
 
@@ -13,15 +14,81 @@ from app.debug_payload import dump_payload
 from app.logging_utils import log_step
 from app.prompt_utils import render_prompt_template
 
-
 from docx import Document
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
+log = logging.getLogger(__name__)
+MAX_RETRIES = 5
+BASE_BACKOFF_SECONDS = 2
 
-def docx_chars(path):
+
+def _load_json_schema() -> dict[str, Any]:
+    """
+    Lê o schema de structured outputs para Responses API.
+
+    Aceita:
+      - wrapper: {"name": "...", "strict": true, "schema": {...}}
+      - puro: {...}  (um JSON Schema)
+
+    Retorna SEMPRE no formato:
+      {"name": str, "strict": bool, "schema": {...}}
+    """
+    schema_path = APP_DIR / "prompts" / "schemas" / "slide_plan_v1.json"
+    raw = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    if isinstance(raw, dict) and isinstance(raw.get("schema"), dict):
+        name = str(raw.get("name") or "slide_plan_v1")
+        strict = bool(raw.get("strict", True))
+        schema = raw["schema"]
+        return {"name": name, "strict": strict, "schema": schema}
+
+    if isinstance(raw, dict) and raw.get("type"):
+        return {"name": "slide_plan_v1", "strict": True, "schema": raw}
+
+    raise ValueError(f"Schema inválido em {schema_path}")
+
+
+def _safe_get(obj: Any, key: str, default: Any = None) -> Any:
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+def _try_parse_json_strict(s: str) -> dict[str, Any] | None:
+    if not isinstance(s, str):
+        return None
+    s = s.strip()
+    if not s:
+        return None
+    try:
+        return json.loads(s)
+    except Exception:
+        return None
+
+
+def _summarize_response_shapes(resp: Any) -> str:
+    parts: list[str] = []
+    out = _safe_get(resp, "output", []) or []
+    parts.append(f"output_len={len(out)}")
+    for i, msg in enumerate(out[:3]):
+        parts.append(f"output[{i}].type={_safe_get(msg, 'type')}")
+        content = _safe_get(msg, "content", []) or []
+        parts.append(f" output[{i}].content_len={len(content)}")
+        for j, c in enumerate(content[:5]):
+            parts.append(f"  content[{j}].type={_safe_get(c, 'type')}")
+    ot = _safe_get(resp, "output_text", None)
+    parts.append(
+        f"has_output_text={bool(ot)} output_text_len={len(ot) if isinstance(ot, str) else 0}"
+    )
+    return " | ".join(parts)
+
+
+def docx_chars(path: Path) -> int:
     d = Document(path)
     paras = [p.text.strip() for p in d.paragraphs if p.text and p.text.strip()]
     return len("\n".join(paras))
@@ -54,19 +121,13 @@ def extract_docx_text(path: Path) -> str:
     return "\n".join(chunks).strip()
 
 
-log = logging.getLogger(__name__)
-MAX_RETRIES = 5
-BASE_BACKOFF_SECONDS = 2
-
-
 def with_backoff(fn, *args, **kwargs):
     """Executa uma função com backoff exponencial e jitter."""
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             return fn(*args, **kwargs)
         except Exception as exc:
-            is_last = attempt == MAX_RETRIES
-            if is_last:
+            if attempt == MAX_RETRIES:
                 raise
             delay = min(BASE_BACKOFF_SECONDS * (2 ** (attempt - 1)), 30)
             delay += random.uniform(0, 0.5)
@@ -85,6 +146,7 @@ def upload_file(client: OpenAI, path: Path) -> str:
         size = path.stat().st_size
     except OSError:
         size = -1
+
     log_step(
         log,
         path.parent.name,
@@ -92,9 +154,73 @@ def upload_file(client: OpenAI, path: Path) -> str:
         f"request: file={path.name} size_bytes={size} purpose=user_data",
         level=logging.DEBUG,
     )
+
     with open(path, "rb") as fh:
         f = with_backoff(client.files.create, file=fh, purpose="user_data")
     return f.id
+
+
+def _extract_output_json(resp: Any, *, directory: str) -> dict[str, Any]:
+    """
+    Extrai o JSON estruturado da resposta do Responses.
+
+    Preferência:
+      1) content.type == "output_json" => retorna c.json
+      2) content.type em ("output_text","text") => tenta json.loads no texto
+      3) resp.output_text => tenta json.loads
+
+    Se falhar, levanta erro com resumo do shape da resposta.
+    """
+    output = _safe_get(resp, "output", []) or []
+
+    # 1) output_json direto
+    for out in output:
+        if _safe_get(out, "type") != "message":
+            continue
+        content = _safe_get(out, "content", []) or []
+        for c in content:
+            if _safe_get(c, "type") == "output_json":
+                data = _safe_get(c, "json")
+                if isinstance(data, dict):
+                    return data
+                try:
+                    return dict(data)
+                except Exception:
+                    pass
+
+    # 2) texto dentro do content (alguns SDKs devolvem output_text mesmo com schema)
+    for out in output:
+        if _safe_get(out, "type") != "message":
+            continue
+        content = _safe_get(out, "content", []) or []
+        for c in content:
+            ctype = _safe_get(c, "type")
+            if ctype in ("output_text", "text"):
+                # o campo pode ser "text" (string) ou {"text": "..."} dependendo do SDK
+                txt = _safe_get(c, "text")
+                if isinstance(txt, dict):
+                    txt = txt.get("text") or txt.get("value")
+                parsed = _try_parse_json_strict(txt if isinstance(txt, str) else "")
+                if parsed is not None:
+                    return parsed
+
+    # 3) output_text do resp
+    ot = _safe_get(resp, "output_text", None)
+    parsed = _try_parse_json_strict(ot if isinstance(ot, str) else "")
+    if parsed is not None:
+        return parsed
+
+    summary = _summarize_response_shapes(resp)
+    log_step(
+        log,
+        directory,
+        "_extract_output_json",
+        f"response_shape: {summary}",
+        level=logging.ERROR,
+    )
+    raise ValueError(
+        "Resposta não retornou JSON parseável (nem output_json nem JSON em output_text)."
+    )
 
 
 def call_llm(
@@ -104,8 +230,10 @@ def call_llm(
     file_ids: list[str],
     user_input: str,
     directory: str,
-) -> tuple[str, dict]:
-    """Chama o modelo com arquivos anexados e retorna o texto da resposta."""
+) -> dict[str, Any]:
+    """Chama o modelo com arquivos anexados e retorna o JSON (dict)."""
+    schema_fmt = _load_json_schema()
+
     tool_label = "code_interpreter"
     log_step(
         log,
@@ -117,61 +245,43 @@ def call_llm(
             f"files={len(file_ids)} "
             f"instructions_len={len(instructions or '')} "
             f"input_len={len(user_input or '')} "
-            f"tool={tool_label}"
+            f"tool={tool_label} "
+            f"json_schema={schema_fmt.get('name')}"
         ),
         level=logging.DEBUG,
     )
-    payload = {
+
+    payload: dict[str, Any] = {
         "model": model,
         "instructions": instructions,
         "input": user_input,
+        "tools": [
+            {
+                "type": "code_interpreter",
+                "container": {
+                    "type": "auto",
+                    "file_ids": file_ids,
+                },
+            }
+        ],
+        "tool_choice": {"type": "code_interpreter"},
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": schema_fmt["name"],
+                "strict": bool(schema_fmt.get("strict", True)),
+                "schema": schema_fmt["schema"],
+            }
+        },
     }
-    payload["tools"] = [
-        {
-            "type": "code_interpreter",
-            "container": {
-                "type": "auto",
-                "file_ids": file_ids,
-            },
-        }
-    ]
-    payload["tool_choice"] = {"type": "code_interpreter"}
+
     dump_path = dump_payload(payload)
     log_step(
-        log,
-        directory,
-        "call_llm",
-        f"request_dump={dump_path}",
-        level=logging.DEBUG,
+        log, directory, "call_llm", f"request_dump={dump_path}", level=logging.DEBUG
     )
-    resp = with_backoff(
-        client.responses.create,
-        **payload,
-    )
-    return (resp.output_text or "").strip()
 
-
-def extract_json(text: str) -> dict:
-    """Extrai JSON da resposta, mesmo quando houver texto extra."""
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(text[start : end + 1])
-        raise
-
-
-def parse_json_strict(text: str) -> dict:
-    """Exige JSON puro (sem texto adicional) e parseia."""
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end < start:
-        raise ValueError("Resposta não contém JSON válido.")
-    if text[:start].strip() or text[end + 1 :].strip():
-        raise ValueError("Resposta contém texto extra fora do JSON.")
-    return json.loads(text[start : end + 1])
+    resp = with_backoff(client.responses.create, **payload)
+    return _extract_output_json(resp, directory=directory)
 
 
 def generate_plan(
@@ -181,13 +291,14 @@ def generate_plan(
     roteiro_docx: Path,
     model: str,
     directory: str,
-    strict_json: bool = False,
-) -> dict:
-    """Gera o plano de slides (JSON) a partir de conteúdo e roteiro."""
+) -> dict[str, Any]:
+    """Gera o plano de slides (JSON dict) a partir de conteúdo e roteiro."""
     content_id = upload_file(client, content_docx)
     roteiro_id = upload_file(client, roteiro_docx)
     file_ids = [content_id, roteiro_id]
+
     user_input = render_prompt_template(APP_DIR / USER_INPUT_SLIDES)
+
     log_step(
         log,
         directory,
@@ -195,7 +306,8 @@ def generate_plan(
         "Arquivos de conteudo + roteiro incluidos no pipeline",
     )
     log_step(log, directory, "call_llm", "LLM processando dados")
-    response_text = call_llm(
+
+    return call_llm(
         client=client,
         model=model,
         instructions=prompt_md,
@@ -203,9 +315,6 @@ def generate_plan(
         directory=directory,
         user_input=user_input,
     )
-    if strict_json:
-        return parse_json_strict(response_text)
-    return extract_json(response_text)
 
 
 def generate_plan_for_dir(
@@ -218,8 +327,12 @@ def generate_plan_for_dir(
     force: bool = False,
     strict_json: bool = False,
     use_code_interpreter: bool = True,
-) -> dict | None:
-    """Gera e salva o JSON do plano para um diretório de núcleo."""
+) -> dict[str, Any] | None:
+    """
+    Gera e salva o JSON do plano para um diretório de núcleo.
+
+    strict_json e use_code_interpreter são mantidos por compatibilidade com callers.
+    """
     if output_json.exists() and not force:
         log_step(
             log,
@@ -236,6 +349,7 @@ def generate_plan_for_dir(
             api_key = key_file.read().strip()
 
     client = OpenAI(api_key=api_key)
+
     plan = generate_plan(
         client=client,
         prompt_md=prompt_md,
@@ -243,18 +357,20 @@ def generate_plan_for_dir(
         roteiro_docx=roteiro_docx,
         model=model,
         directory=content_docx.parent.name,
-        strict_json=strict_json,
     )
+
     log_step(
         log,
         content_docx.parent.name,
         "generate_plan_for_dir",
         "Formulando abstracao dos slides",
     )
+
     output_json.write_text(
         json.dumps(plan, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
     log_step(
         log,
         content_docx.parent.name,
@@ -262,4 +378,5 @@ def generate_plan_for_dir(
         f"Plano gerado: {output_json}",
         level=logging.DEBUG,
     )
+
     return plan

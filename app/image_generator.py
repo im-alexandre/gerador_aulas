@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import base64
 import logging
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
 from openai import OpenAI
+from PIL import Image  # <- add Pillow
 
 from app.config.paths import APP_DIR, USER_INPUT_IMAGE
 from app.config.pipeline import (
@@ -19,11 +21,16 @@ from app.debug_payload import dump_payload
 from app.logging_utils import log_step
 from app.prompt_utils import render_prompt_template
 
-
 log = logging.getLogger(__name__)
 
+LIGHT_BG = "#F2F4F7"
+DARK_BG = "#111827"
 
-def _img_prompt_from_slide(slide: dict[str, Any]) -> str:
+
+def _img_prompt_from_slide(slide: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    """
+    Retorna (prompt, theme, layout, style_profile, variation_id)
+    """
     title = (slide.get("title") or "").strip()
     lead = (slide.get("lead") or "").strip()
     bullets = slide.get("bullets") or []
@@ -37,13 +44,54 @@ def _img_prompt_from_slide(slide: dict[str, Any]) -> str:
         f"- {b}" for b in bullets[:6] if isinstance(b, str) and b.strip()
     )
 
-    return render_prompt_template(
+    theme = random.choice(["light", "dark"])
+    layout = random.choice(["linear", "radial", "grid", "split", "layered"])
+    style_profile = random.choice(
+        ["corporate_flat", "technical_glow", "architectural_blueprint"]
+    )
+
+    # "variador invisível" (não precisa fazer sentido, só mudar embedding)
+    variation_id = str(random.randint(100000, 999999))
+
+    prompt = render_prompt_template(
         APP_DIR / USER_INPUT_IMAGE,
         title=title,
         lead=lead,
         bullets_txt=bullets_txt,
         intent=intent,
+        theme=theme,
+        layout=layout,
+        style_profile=style_profile,
+        variation_id=variation_id,
     )
+
+    return prompt, theme, layout, style_profile, variation_id
+
+
+def _preview_text(text: str, limit: int = 200) -> str:
+    cleaned = " ".join((text or "").split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "..."
+
+
+def _flatten_transparency(png_path: Path, *, bg_hex: str) -> None:
+    """
+    Se o PNG vier com alpha/transparência, achata num fundo sólido (bg_hex) e salva SEM alpha.
+    """
+    img = Image.open(png_path)
+
+    # Se não tiver alpha, nada a fazer.
+    has_alpha = img.mode in ("RGBA", "LA") or (
+        img.mode == "P" and "transparency" in img.info
+    )
+    if not has_alpha:
+        return
+
+    rgba = img.convert("RGBA")
+    bg = Image.new("RGBA", rgba.size, bg_hex)
+    out = Image.alpha_composite(bg, rgba).convert("RGB")
+    out.save(png_path, format="PNG", optimize=True)
 
 
 def generate_image_png(
@@ -54,10 +102,11 @@ def generate_image_png(
     model: str = OPENAI_IMAGE_MODEL,
     size: str = OPENAI_IMAGE_SIZE,
     quality: str | None = OPENAI_IMAGE_QUALITY,
+    bg_hex: str = LIGHT_BG,
 ) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    payload = {
+    payload: dict[str, Any] = {
         "model": model,
         "prompt": prompt,
         "n": 1,
@@ -74,17 +123,13 @@ def generate_image_png(
         f"request_dump={dump_path}",
         level=logging.DEBUG,
     )
-    img = client.images.generate(**payload)
 
+    img = client.images.generate(**payload)
     image_bytes = base64.b64decode(img.data[0].b64_json)
     out_path.write_bytes(image_bytes)
 
-
-def _preview_text(text: str, limit: int = 200) -> str:
-    cleaned = " ".join((text or "").split())
-    if len(cleaned) <= limit:
-        return cleaned
-    return cleaned[:limit].rstrip() + "..."
+    # ✅ garante “sem transparência” mesmo que a API ignore o prompt
+    _flatten_transparency(out_path, bg_hex=bg_hex)
 
 
 def materialize_generated_images_for_plan(
@@ -105,13 +150,12 @@ def materialize_generated_images_for_plan(
       - gera PNG
       - escreve em {course_dir}/{assets_dirname}/{nucleus_name}/gen_{slide_id}.png
       - injeta image.path no JSON (mantendo source/intent)
-    Retorna (quantidade_criada, custo_estimado).
     """
     slides = plan.get("slides") or []
     if not isinstance(slides, list):
         return 0, {"model": model, "size": size, "count": 0, "cost_usd": 0}
 
-    tasks: list[tuple[dict[str, Any], str, Path, str, str]] = []
+    tasks: list[tuple[dict[str, Any], str, Path, str, str, str]] = []
     for slide in slides:
         if not isinstance(slide, dict):
             continue
@@ -137,18 +181,21 @@ def materialize_generated_images_for_plan(
         slide_id = (slide.get("slide_id") or "").strip()
         if not slide_id:
             slide_id = f"s{len(tasks) + 1:02d}"
+
         rel = f"{assets_dirname}/{nucleus_name}/gen_{slide_id}.png"
         out_path = course_dir / rel
 
-        prompt = _img_prompt_from_slide(slide)
-        tasks.append((slide, rel, out_path, prompt, slide_id))
+        prompt, theme, _layout, _style, variation_id = _img_prompt_from_slide(slide)
+        bg_hex = LIGHT_BG if theme == "light" else DARK_BG
+
+        tasks.append((slide, rel, out_path, prompt, slide_id, bg_hex))
 
     if not tasks:
         return 0, {"model": model, "size": size, "count": 0, "cost_usd": 0}
 
     if not generate_images:
         reused = 0
-        for slide, rel, out_path, _prompt, _slide_id in tasks:
+        for slide, rel, out_path, _prompt, _slide_id, _bg_hex in tasks:
             if out_path.exists():
                 image = slide.get("image") or {}
                 if isinstance(image, dict):
@@ -157,7 +204,7 @@ def materialize_generated_images_for_plan(
                 reused += 1
         return reused, {"model": model, "size": size, "count": 0, "cost_usd": 0}
 
-    def _generate_one(prompt: str, out_path: Path, slide_id: str) -> None:
+    def _generate_one(prompt: str, out_path: Path, slide_id: str, bg_hex: str) -> None:
         log_step(
             log,
             nucleus_name,
@@ -168,16 +215,19 @@ def materialize_generated_images_for_plan(
                 f"size={size} "
                 f"quality={quality or 'default'} "
                 f"slide_id={slide_id} "
+                f"bg={bg_hex} "
                 f"prompt_len={len(prompt)} "
                 f'prompt_preview="{_preview_text(prompt)}"'
             ),
             level=logging.DEBUG,
         )
+
         if api_key_override:
             api_key = api_key_override.strip()
         else:
             with open("app/prompts/openai_api_key") as key_file:
                 api_key = key_file.read().strip()
+
         client = OpenAI(api_key=api_key)
         generate_image_png(
             client=client,
@@ -186,15 +236,21 @@ def materialize_generated_images_for_plan(
             model=model,
             size=size,
             quality=quality,
+            bg_hex=bg_hex,
         )
 
     generated = 0
     workers = max_workers if max_workers is not None else IMAGE_WORKERS
+
     with ThreadPoolExecutor(max_workers=workers) as executor:
         future_map = {
-            executor.submit(_generate_one, prompt, out_path, slide_id): (slide, rel)
-            for slide, rel, out_path, prompt, slide_id in tasks
+            executor.submit(_generate_one, prompt, out_path, slide_id, bg_hex): (
+                slide,
+                rel,
+            )
+            for slide, rel, out_path, prompt, slide_id, bg_hex in tasks
         }
+
         for future in as_completed(future_map):
             slide, rel = future_map[future]
             future.result()
@@ -203,3 +259,5 @@ def materialize_generated_images_for_plan(
                 image["path"] = rel
                 slide["image"] = image
             generated += 1
+
+    return generated, {"model": model, "size": size, "count": generated, "cost_usd": 0}

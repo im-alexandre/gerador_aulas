@@ -1,41 +1,125 @@
 Crie uma imagem para slide de aula (PowerPoint), limpa e didática.
-ESTILO VISUAL (obrigatório):
+REGRAS GERAIS (sempre):
 - Diagrama técnico minimalista.
-- Estética corporativa moderna.
+- Estética corporativa técnica.
 - Aparência profissional e estruturada.
 - Formas geométricas com predominância de ângulos retos.
 - Bordas discretas e bem definidas (evitar excesso de arredondamento).
 - Alinhamento em grid e espaçamento consistente.
 - Hierarquia visual clara.
 - Profundidade sutil (sombras leves e discretas, sem exagero).
-- Paleta neutra e sóbria (tons de azul, cinza, grafite).
-- Contraste moderado.
-- Fundo claro ou cinza muito claro.
-- Visual semelhante a diagrama de arquitetura de sistema ou slide de consultoria.
-- Use fundo cinza claro neutro (tom similar a #F2F4F7 ou #EEF1F4).
-- O fundo deve preencher completamente o canvas.
-- Nenhuma área transparente é permitida.
-EVITAR:
+- Use apenas ícones genéricos técnicos, formas simples, setas direcionais, fluxo estruturado e agrupamento visual claro.
+- Composição única, coesa, com foco em comunicar o intent.
+ANTI-TEXTO (STRICT):
+- PROIBIDO qualquer texto, letra, número ou pseudo-texto.
+- PROIBIDO caracteres embaralhados ou símbolos que imitem escrita.
+- NÃO usar rótulos, legendas ou captions.
+- NÃO usar qualquer tipo de tipografia.
+EVITAR (STRICT):
 - Estilo cartoon ou ilustrativo infantil.
 - Cores pastel ou excessivamente vibrantes.
 - Elementos decorativos desnecessários.
 - Formas orgânicas ou onduladas.
 - Traços desenhados à mão.
 - Estética de infográfico escolar.
-Use apenas ícones genéricos técnicos, formas simples, setas direcionais, fluxo estruturado e agrupamento visual claro.
-CONTEXTO DO SLIDE (APENAS PARA COMPREENSÃO, NAO VISUAL):
+- Fundo branco.
+- Fundo com aparência de mockup isolado.
+- Fundo transparente.
+VARIATION_ID (ignore semanticamente; use apenas para variar): {{ variation_id | default("0") }}
+TEMA (obrigatório):
+THEME: {{ theme }}
+{% if theme == "light" %}
+    FUNDO (obrigatório e restritivo):
+    - Fundo cinza claro neutro, tom frio.
+    - NÃO usar branco puro (#FFFFFF).
+    - Preferir tons próximos de #F2F4F7, #EEF1F4 ou equivalente.
+    - Fundo uniforme e preenchendo 100% do canvas.
+    - NÃO permitir transparência.
+    - NÃO permitir áreas brancas puras.
+    PALETA:
+    - Azul médio e variações frias.
+    - Cinza grafite para contornos.
+    - Contraste moderado, leitura limpa.
+{% elif theme == "dark" %}
+    FUNDO (obrigatório e restritivo):
+    - Fundo escuro técnico (grafite profundo ou azul petróleo).
+    - Tons similares a #111827, #0B1220, #1F2937 ou equivalente.
+    - NÃO usar preto absoluto (#000000).
+    - Fundo uniforme e preenchendo 100% do canvas.
+    - Alto contraste com elementos (elementos claros sobre fundo escuro).
+    PALETA:
+    - Azul técnico (principal).
+    - Ciano discreto (secundário).
+    - Verde técnico para destaques pontuais (mínimo).
+    ILUMINAÇÃO:
+    - Glow técnico sutil e contido (sem neon).
+    - Sombras mais marcadas, sensação moderna.
+{% endif %}
+PERFIL VISUAL (obrigatório):
+STYLE_PROFILE: {{ style_profile }}
+{% if style_profile == "corporate_flat" %}
+    - Visual flat corporativo moderno.
+    - Sem isometria.
+    - Linhas nítidas, ícones simples, preenchimentos suaves.
+    - Conectores discretos, organização de consultoria.
+{% elif style_profile == "architectural_blueprint" %}
+    - Visual de blueprint técnico.
+    - Ênfase em grid e linhas finas.
+    - Elementos com contorno e preenchimento mínimo.
+    - Conexões bem geométricas e “engenheiradas”.
+{% elif style_profile == "technical_glow" %}
+    - Visual técnico moderno com glow sutil.
+    - Destaques luminosos apenas em pontos-chave (setas, nós, bordas).
+    - Evitar brilho excessivo ou estética cyberpunk.
+{% else %}
+    - Visual corporativo técnico (padrão).
+    - Sem extravagância; manter sobriedade.
+{% endif %}
+COMPOSIÇÃO (obrigatória — NÃO improvisar):
+LAYOUT_MODE: {{ layout }}
+{% if layout == "linear" %}
+    - Estrutura em fluxo linear (horizontal OU vertical), sequência clara.
+    - 3 a 6 módulos em série.
+    - Conexões por setas retas sólidas.
+    - Um sentido de leitura dominante (esquerda→direita ou cima→baixo).
+{% elif layout == "radial" %}
+    - Um elemento central dominante.
+    - 3 a 6 componentes orbitando ao redor.
+    - Conexões radiais (linhas saindo do centro).
+    - Distribuição equilibrada no canvas (sem aglomeração).
+{% elif layout == "grid" %}
+    - Blocos organizados em grade (2x2, 3x2 etc.).
+    - Conexões discretas entre células relevantes.
+    - Sensação modular/arquitetural.
+{% elif layout == "split" %}
+    - Composição dividida em dois blocos principais (esquerda/direita).
+    - Setas ou conexão clara entre lados.
+    - Ideal para “antes/depois”, “entrada/saída”, “dev/ops”, “origem/destino”.
+{% elif layout == "layered" %}
+    - Estrutura em camadas empilhadas (3 a 5 níveis).
+    - Conexões verticais entre camadas.
+    - Sensação de arquitetura em níveis (infra/app/dados etc.).
+{% elif layout == "hub_spoke" %}
+    - Nó central (hub) com 3 a 6 spokes.
+    - Spokes com ícones diferentes e distâncias consistentes.
+    - Conectores uniformes, sem poluição visual.
+{% else %}
+    - Layout linear (fallback).
+    - Fluxo com setas retas.
+{% endif %}
+VARIAÇÃO CONTROLADA (obrigatória — escolha UMA abordagem consistente):
+- Escolha exatamente UMA: (A) flat 2D ortográfico OU (B) leve isometria.
+- Não misturar (A) e (B) na mesma imagem.
+- Conectores: escolher exatamente UMA: linhas contínuas OU conectores segmentados.
+- Blocos: escolher exatamente UMA: preenchidos OU contorno-only.
+- Manter consistência dentro da imagem.
+CONTEXTO DO SLIDE (APENAS PARA COMPREENSÃO, NÃO VISUAL):
 O texto abaixo é fornecido SOMENTE para orientar o conceito da imagem.
 NÃO deve aparecer na imagem, nem parcial nem indiretamente.
 TITULO DO SLIDE: {{ title }}
 LEAD (contexto): {{ lead }}
 BULLETS (pontos):
 {{ bullets_txt }}
-REGRAS DE TEXTO NA IMAGEM (STRICT):
-- PROIBIDO qualquer texto, letra, número ou pseudo-texto.
-- PROIBIDO caracteres embaralhados ou símbolos que imitem escrita.
-- NÃO usar rótulos, legendas ou captions.
-- NÃO usar qualquer tipo de tipografia.
-- Use APENAS ícones, formas geométricas, setas, cores e agrupamento visual.
 INTENT (o que precisa comunicar visualmente): {{ intent }}
 Se houver conflito entre o contexto do slide e as regras visuais,
 as regras visuais SEMPRE prevalecem.

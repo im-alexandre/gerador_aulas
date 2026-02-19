@@ -82,7 +82,7 @@ def process_nucleus_dir(
         )
 
     plan_json = nucleus_dir / PLAN_JSON_NAME
-    plan, usage = generate_plan_for_dir(
+    plan = generate_plan_for_dir(
         api_key_override=api_key_override,
         content_docx=tagged_docx,
         roteiro_docx=roteiro_docx,

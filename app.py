@@ -30,6 +30,11 @@ def parse_args() -> argparse.Namespace:
         default=NUCLEUS_WORKERS,
         help="Numero maximo de nucleos processados em paralelo.",
     )
+    ap.add_argument(
+        "--workers",
+        type=int,
+        help="Numero unico de workers (nucleos e imagens).",
+    )
     ap.add_argument("--force", action="store_true")
     ap.add_argument(
         "--image-provider",
@@ -74,6 +79,7 @@ def main() -> None:
         only=only_set,
         model=args.model,
         nucleus_workers=args.nucleus_workers,
+        workers=args.workers,
         force=args.force,
         image_provider=args.image_provider,
         image_model=args.image_model,

@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 
 def process_nucleus_dir(
     api_key_override: str | None,
+    image_workers: int | None,
     nucleus_dir: Path,
     course_dir: Path,
     prompt_md: str,
@@ -154,6 +155,7 @@ def process_nucleus_dir(
         quality=image_quality,
         generate_images=generate_images,
         api_key_override=api_key_override,
+        max_workers=image_workers,
     )
     if generate_images:
         log_step(

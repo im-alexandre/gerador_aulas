@@ -105,7 +105,7 @@ Regras de preenchimento por tipo:
 
 ### REGRA DE DENSIDADE (OBRIGATÓRIA)
 
-- Crie de 4 ou 5 slides
+- Crie de 5 a 6 slides
 - Utilize todos os conceitos e definições explicados ao longo do material
 
 ### REGRA DE PRESERVAÇÃO (OBRIGATÓRIA)

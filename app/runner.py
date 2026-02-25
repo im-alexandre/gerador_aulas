@@ -41,6 +41,7 @@ class RunConfig:
     only: set[str] | None = None
     model: str = DEFAULT_MODEL
     nucleus_workers: int = NUCLEUS_WORKERS
+    workers: int | None = None
     force: bool = False
     image_provider: str = "openai"
     image_model: str = OPENAI_IMAGE_MODEL
@@ -92,6 +93,23 @@ def run_pipeline(
         if log_cb:
             log_cb(msg)
 
+    nucleus_workers = int(config.workers or config.nucleus_workers)
+    if nucleus_workers <= 0:
+        raise SystemExit("--nucleus-workers deve ser >= 1.")
+    image_workers = nucleus_workers
+
+    log_step(
+        log,
+        course_dir.name,
+        "workers",
+        (
+            "workers: "
+            f"cpu={os.cpu_count() or 1} "
+            f"NUCLEUS_WORKERS={nucleus_workers} "
+            f"IMAGE_WORKERS={image_workers}"
+        ),
+    )
+
     log_step(
         log, course_dir.name, "split_course_content", "Extraindo nucleos conceituais"
     )
@@ -117,10 +135,6 @@ def run_pipeline(
             continue
         nuclei.append(entry)
 
-    nucleus_workers = int(config.nucleus_workers)
-    if nucleus_workers <= 0:
-        raise SystemExit("--nucleus-workers deve ser >= 1.")
-
     total = len(nuclei)
     completed = 0
 
@@ -132,6 +146,7 @@ def run_pipeline(
                 break
             future = executor.submit(
                 process_nucleus_dir,
+                image_workers=image_workers,
                 nucleus_dir=entry,
                 course_dir=course_dir,
                 prompt_md=prompt_md,

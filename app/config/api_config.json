@@ -1,0 +1,14 @@
+{
+  "headers": {
+    "X-API-KEY": "",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Cookie": "__cf_bm=yKx97tWpELYCGYh5ZfDp1l3gDLpCYAo7QwdCYW8Z8Vc-1769047407-1.0.1.1-rbCI8sYSBWUD7LpJKjAnqYfjE6D2AReAMI2ANm3S7ST2mid66Ic5j41swa3lkCp23_kKIMw46945txwO0A9jfM7pwyhBR1zan1AzBL5iXy4"
+  },
+  "body": {
+    "gammaId": "g_es4jyayfd77bb0e",
+    "folderIds": [
+      "cl6t8q818i2k1q9"
+    ]
+  }
+}

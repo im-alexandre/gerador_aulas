@@ -1,0 +1,6 @@
+{
+    "api_key_path": "config/chave_api_gamma.txt",
+    "instructions_path": "prompts/instrucoes_gerais_gamma.md",
+    "cards_path": "cards_exemplo",
+    "url": "https://public-api.gamma.app/v1.0/generations/from-template"
+}

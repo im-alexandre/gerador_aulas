@@ -41,32 +41,40 @@ class App(ctk.CTk):
         top.grid(row=0, column=0, padx=16, pady=16, sticky="ew")
         top.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(top, text="Curso").grid(row=0, column=0, sticky="w", padx=8, pady=6)
-        self.course_entry = ctk.CTkEntry(top, placeholder_text="Selecione a pasta do curso")
+        ctk.CTkLabel(top, text="Curso").grid(
+            row=0, column=0, sticky="w", padx=8, pady=6
+        )
+        self.course_entry = ctk.CTkEntry(
+            top, placeholder_text="Selecione a pasta do curso"
+        )
         self.course_entry.grid(row=0, column=1, sticky="ew", padx=8, pady=6)
         ctk.CTkButton(top, text="Procurar", command=self._browse_course).grid(
             row=0, column=2, sticky="e", padx=8, pady=6
         )
-        ctk.CTkLabel(top, text="Recentes").grid(row=0, column=3, sticky="w", padx=8, pady=6)
+        ctk.CTkLabel(top, text="Recentes").grid(
+            row=0, column=3, sticky="w", padx=8, pady=6
+        )
         self.recents_var = ctk.StringVar(value="")
         self.recents_menu = ctk.CTkOptionMenu(
             top, variable=self.recents_var, values=[""], command=self._select_recent
         )
         self.recents_menu.grid(row=0, column=4, sticky="w", padx=8, pady=6)
 
-        ctk.CTkLabel(top, text="Template").grid(row=1, column=0, sticky="w", padx=8, pady=6)
-        self.template_var = ctk.StringVar(value="graduacao")
-        ctk.CTkOptionMenu(top, variable=self.template_var, values=["graduacao", "tecnico"]).grid(
-            row=1, column=1, sticky="w", padx=8, pady=6
+        ctk.CTkLabel(top, text="Template").grid(
+            row=1, column=0, sticky="w", padx=8, pady=6
         )
+        self.template_var = ctk.StringVar(value="graduacao")
+        ctk.CTkOptionMenu(
+            top, variable=self.template_var, values=["graduacao", "tecnico"]
+        ).grid(row=1, column=1, sticky="w", padx=8, pady=6)
 
         ctk.CTkLabel(top, text="Provedor de imagens").grid(
             row=1, column=2, sticky="w", padx=8, pady=6
         )
         self.provider_var = ctk.StringVar(value="openai")
-        ctk.CTkOptionMenu(top, variable=self.provider_var, values=["openai", "gamma"]).grid(
-            row=1, column=3, sticky="w", padx=8, pady=6
-        )
+        ctk.CTkOptionMenu(
+            top, variable=self.provider_var, values=["openai", "gamma"]
+        ).grid(row=1, column=3, sticky="w", padx=8, pady=6)
 
         ctk.CTkLabel(top, text="Only (opcional)").grid(
             row=2, column=0, sticky="w", padx=8, pady=6
@@ -74,9 +82,7 @@ class App(ctk.CTk):
         self.only_entry = ctk.CTkEntry(top, placeholder_text="ex.: mod1_nc1,mod1_nc2")
         self.only_entry.grid(row=2, column=1, sticky="ew", padx=8, pady=6)
         self.force_var = ctk.BooleanVar(value=False)
-        self.force_check = ctk.CTkCheckBox(
-            top, text="Force", variable=self.force_var
-        )
+        self.force_check = ctk.CTkCheckBox(top, text="Force", variable=self.force_var)
         self.force_check.grid(row=2, column=2, sticky="w", padx=8, pady=6)
 
         ctk.CTkLabel(top, text="OpenAI API Key (opcional)").grid(
@@ -204,7 +210,9 @@ class App(ctk.CTk):
                     current, total, name = payload
                     if total > 0:
                         self.progress.set(current / total)
-                    self.status_label.configure(text=f"{current}/{total} concluídos ({name})")
+                    self.status_label.configure(
+                        text=f"{current}/{total} concluídos ({name})"
+                    )
                 elif kind == "done":
                     self.status_label.configure(text="Concluído")
                     self.run_button.configure(state="normal")
